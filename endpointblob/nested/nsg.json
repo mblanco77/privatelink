@@ -1,0 +1,52 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "nsgallvnets",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2019-09-01",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowRdpInbound",
+                        "properties": {
+                            "description": "Allow RDP Access",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "allow",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "Block_Internet",
+                        "properties": {
+                            "description": "Block Internet",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "Internet",
+                            "access": "Deny",
+                            "priority": 200,
+                            "direction": "Outbound"
+                        }
+                    }
+
+                ]
+            }
+        }
+
+    ],
+    "outputs": {
+    }
+}

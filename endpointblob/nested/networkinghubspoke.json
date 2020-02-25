@@ -1,0 +1,286 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vnetOnPremName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the onprem vnet"
+            }
+        },
+        "vnetOnPremAddressSpace": {
+            "type": "string",
+            "metadata": {
+                "description": "Address Space of the onprem vnet"
+            }
+        },
+        "subnetOnPremDefaultPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet prefix on the onprem vnet"
+            }
+        },
+        "subnetOnPremDefaultName": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet name on the onprem vnet"
+            }
+        },
+        "subnetOnPremGatewayPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "gateway subnet prefix on the onprem vnet"
+            }
+        },
+        "vnetHubName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the hub vnet"
+            }
+        },
+        "vnetHubAddressSpace": {
+            "type": "string",
+            "metadata": {
+                "description": "Address Space of the Hub vnet"
+            }
+        },
+        "subnetHubDefaultPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet prefix on the hub vnet"
+            }
+        },
+        "subnetHubDefaultName": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet name on the hub vnet"
+            }
+        },
+
+        "subnetHubGatewayPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "gateway subnet prefix on the hub vnet"
+            }
+        },
+        "vNetHubtovNetSpokePeeringName": {
+            "type": "string",
+            "metadata": {
+                "description": "vnet peering name of Hub to Spoke"
+            }
+        },
+        "vnetSpokeName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the spoke vnet"
+            }
+        },
+        "vnetSpokeaddressspace": {
+            "type": "string",
+            "metadata": {
+                "description": "Address Space of the spoke vnet"
+            }
+        },
+        "subnetSpokedefaultprefix": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet prefix on the spoke vnet"
+            }
+        },
+        "subnetSpokeDefaultName": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet name on the spoke vnet"
+            }
+        },
+        "vNetSpoketovNetHubPeeringName": {
+            "type": "string",
+            "metadata": {
+                "description": "vnet peering name of spoke to hub"
+            }
+        }
+
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "nsgallvnets",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2019-09-01",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowRdpInbound",
+                        "properties": {
+                            "description": "Allow RDP Access",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "allow",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    }
+
+                ]
+            }
+        },
+        {
+            "name": "[parameters('vnetOnPremName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "dependsOn": [
+                "nsgallvnets"
+            ],
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[parameters('vnetOnPremName')]"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetOnPremAddressSpace')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('subnetOnPremDefaultName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetOnPremDefaultPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsgallvnets')]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "GatewaySubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetOnPremGatewayPrefix')]"
+                        }
+                    }
+
+                ]
+            }
+        },
+        {
+            "name": "[parameters('vnetHubName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "dependsOn": [
+                "nsgallvnets"
+            ],
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[parameters('vnetHubName')]"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetHubAddressSpace')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('subnetHubDefaultName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetHubDefaultPrefix')]",
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsgallvnets')]"
+                            }
+
+                        }
+                    },
+                    {
+                        "name": "GatewaySubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetHubGatewayPrefix')]"
+                        }
+                    }
+
+                ]
+            },
+            "resources": [
+                {
+                    "apiVersion": "2019-09-01",
+                    "type": "virtualNetworkPeerings",
+                    "name": "[parameters('vNetHubtovNetSpokePeeringName')]",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetHubName'))]",
+                        "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetSpokeName'))]"
+                    ],
+                    "comments": "This is the peering from vNet hub to vNet spoke",
+                    "properties": {
+                        "allowVirtualNetworkAccess": true,
+                        "allowForwardedTraffic": false,
+                        "allowGatewayTransit": false,
+                        "useRemoteGateways": false,
+                        "remoteVirtualNetwork": {
+                            "id": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vnetSpokeName'))]"
+                        }
+                    }
+                }
+            ]
+
+        },
+        {
+            "name": "[parameters('vnetSpokeName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2019-09-01",
+            "dependsOn": [
+                "nsgallvnets"
+            ],
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[parameters('vnetSpokeName')]"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetSpokeaddressspace')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('subnetSpokeDefaultName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetSpokedefaultprefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsgallvnets')]"
+                            }
+                        }
+                    }
+                ]
+            },
+            "resources": [
+                {
+                    "apiVersion": "2019-09-01",
+                    "type": "virtualNetworkPeerings",
+                    "name": "[parameters('vNetSpoketovNetHubPeeringName')]",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetHubName'))]",
+                        "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetSpokeName'))]"
+                    ],
+                    "comments": "This is the peering from vNet spoke to vNet hub",
+                    "properties": {
+                        "allowVirtualNetworkAccess": true,
+                        "allowForwardedTraffic": false,
+                        "allowGatewayTransit": false,
+                        "useRemoteGateways": false,
+                        "remoteVirtualNetwork": {
+                            "id": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vnetHubName'))]"
+                        }
+                    }
+                }
+            ]
+
+        }
+    ],
+    "outputs": {
+    }
+}

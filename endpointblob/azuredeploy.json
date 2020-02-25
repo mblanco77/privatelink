@@ -1,0 +1,412 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "virtualMachineSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2ms",
+            "metadata": {
+                "description": "The size of the VM"
+            }
+        },
+        "diskType": {
+            "type": "string",
+            "defaultValue": "StandardSSD_LRS",
+            "allowedValues": [
+                "StandardSSD_LRS",
+                "Standard_LRS",
+                "Premium_LRS"
+            ],
+            "metadata": {
+                "description": "The Storage type of the data Disks"
+            }
+        },
+        "vmUser": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "username for the Virtual Machine."
+            }
+        },
+        "vmPass": {
+            "type": "securestring",
+            "defaultValue": "[concat('P1',uniquestring(resourceGroup().id))]",
+            "metadata": {
+                "description": "Password for the Virtual Machine."
+            }
+        },
+        "deploygw": {
+            "type": "string",
+            "defaultValue": "yes",
+            "metadata": {
+                "description": "deploy gateways to connect via vpn on-prem to hub (yes or no)"
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located."
+            },
+            "defaultValue": "https://raw.githubusercontent.com/mblanco77/privatelink/master/"
+        }
+    },
+    "variables": {
+        "vnetOnPrem": {
+            "vnetOnPremName": "vnet-onprem-001",
+            "vnetOnPremAddressSpace": "192.168.0.0/24",
+            "subnetOnPremDefaultPrefix": "192.168.0.0/25",
+            "subnetOnPremGatewayPrefix": "192.168.0.128/28",
+            "gatewayPIPOnPremName": "pipgwonprem",
+            "subnetOnPremDefaultName": "snet-onprem-default",
+            "gatewayName": "gwonprem"
+        },
+        "vnetHub": {
+            "vnetHubName": "vnet-hub-001",
+            "vnetHubAddressSpace": "10.0.0.0/24",
+            "subnetHubDefaultPrefix": "10.0.0.0/25",
+            "subnetHubDefaultName": "snet-hub-default",
+            "subnetHubGatewayPrefix": "10.0.0.128/28",
+            "gatewayPIPHubName": "pipgwhub",
+            "gatewayName": "gwhub"
+        },
+        "vnetSpoke": {
+            "vnetSpokeName": "vnet-spoke-001",
+            "vnetSpokeaddressspace": "10.1.0.0/24",
+            "subnetSpokedefaultprefix": "10.1.0.0/26",
+            "subnetSpokeDefaultName": "snet-spoke-default"
+        },
+        "configuration": {
+            "uritemplatenamenetworking": "[concat(parameters('_artifactsLocation'),'/nested/networkinghubspoke.json')]",
+            "uritemplatenameprivatelink": "[concat(parameters('_artifactsLocation'),'/nested/storageprivatelink.json')]",
+            "uritemplatenameprivatednszone": "[concat(parameters('_artifactsLocation'),'/nested/privatednszone.json')]",
+            "uritemplatenamevm": "[concat(parameters('_artifactsLocation'),'nested/virtualmachines.json')]",
+            "uritemplatenamegateways": "[concat(parameters('_artifactsLocation'),'/nested/vpngateways.json')]",
+            "uritemplatenamensg": "[concat(parameters('_artifactsLocation'),'/nested/nsg.json')]",
+            "uriinstallscripts": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftware.ps1')]"
+        },
+        "vNetHubtovNetSpokePeeringName": "peering-to-spoke",
+        "vNetSpoketovNetHubPeeringName": "peering-to-hub",
+        "storageAcctName": "[concat('stpvtlink', uniqueString(resourceGroup().id) )]",
+        "privateEndpointName": "pvtlinkStorageEndPoint",
+        "vmOnPremName": "[take(concat('vmonprem', uniqueString(resourceGroup().id)),15)]",
+        "vmSpokeName": "[take(concat('vmspoke', uniqueString(resourceGroup().id)),15)]",
+        "nicVmOnPremName": "[concat(variables('vmOnPremName'),'-NetworkInterface')]",
+        "nicVmSpokeName": "[concat(variables('vmSpokeName'),'-NetworkInterface')]",
+        "privateDnsZones_privatelink_blob_core_windows_net_name": "privatelink.blob.core.windows.net",
+        "linkvnetname": "linkvnet",
+        "privatezoneLinkVnetNames": [
+            "[variables('vnetSpoke').vnetSpokeName]",
+            "[variables('vnetOnPrem').vnetOnPremName]"
+        ]
+
+    },
+    "resources": [
+        {
+            "apiVersion": "2017-05-10",
+            "name": "hubspokenetworking",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenamenetworking]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "vnetOnPremName": {
+                        "value": "[variables('vnetOnPrem').vnetOnPremName]"
+                    },
+                    "vnetOnPremAddressSpace": {
+                        "value": "[variables('vnetOnPrem').vnetOnPremAddressSpace]"
+                    },
+                    "subnetOnPremDefaultPrefix": {
+                        "value": "[variables('vnetOnPrem').subnetOnPremDefaultPrefix]"
+                    },
+                    "subnetOnPremDefaultName": {
+                        "value": "[variables('vnetOnPrem').subnetOnPremDefaultName]"
+                    },
+                    "subnetOnPremGatewayPrefix": {
+                        "value": "[variables('vnetOnPrem').subnetOnPremGatewayPrefix]"
+                    },
+                    "vnetHubName": {
+                        "value": "[variables('vnetHub').vnetHubName]"
+                    },
+                    "vnetHubAddressSpace": {
+                        "value": "[variables('vnetHub').vnetHubAddressSpace]"
+                    },
+                    "subnetHubDefaultPrefix": {
+                        "value": "[variables('vnetHub').subnetHubDefaultPrefix]"
+                    },
+                    "subnetHubDefaultName": {
+                        "value": "[variables('vnetHub').subnetHubDefaultName]"
+                    },
+                    "subnetHubGatewayPrefix": {
+                        "value": "[variables('vnetHub').subnetHubGatewayPrefix]"
+                    },
+                    "vnetSpokeName": {
+                        "value": "[variables('vnetSpoke').vnetSpokeName]"
+                    },
+                    "vnetSpokeaddressspace": {
+                        "value": "[variables('vnetSpoke').vnetSpokeaddressspace]"
+                    },
+                    "subnetSpokedefaultprefix": {
+                        "value": "[variables('vnetSpoke').subnetSpokedefaultprefix]"
+                    },
+                    "subnetSpokeDefaultName": {
+                        "value": "[variables('vnetSpoke').subnetSpokeDefaultName]"
+                    },
+                    "vNetSpoketovNetHubPeeringName": {
+                        "value": "[variables('vNetSpoketovNetHubPeeringName')]"
+                    },
+                    "vNetHubtovNetSpokePeeringName": {
+                        "value": "[variables('vNetHubtovNetSpokePeeringName')]"
+                    }
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "storageprivatelink",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "hubspokenetworking"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenameprivatelink]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "storageAcctName": {
+                        "value": "[variables('storageAcctName')]"
+                    },
+                    "privateEndpointName": {
+                        "value": "[variables('privateEndpointName')]"
+                    },
+                    "vnetName": {
+                        "value": "[variables('vnetHub').vnetHubName]"
+                    },
+                    "subnet": {
+                        "value": "[variables('vnetHub').subnetHubDefaultName]"
+                    }
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "privatednszone",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "storageprivatelink"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenameprivatednszone]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "privateDnsZones_privatelink_blob_core_windows_net_name": {
+                        "value": "[variables('privateDnsZones_privatelink_blob_core_windows_net_name')]"
+                    },
+                    "storageAcctName": {
+                        "value": "[variables('storageAcctName')]"
+                    },
+                    "privatelinkendpointipaddress": {
+                        "value": "[reference('storageprivatelink').outputs.privatelinkprivateIPAddress.value]"
+                    },
+                    "linkvnetname": {
+                        "value": "[variables('linkvnetname')]"
+                    },
+                    "vnetnames": {
+                        "value": "[variables('privatezoneLinkVnetNames')]"
+                    }
+
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "virtualmachineonprem",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "hubspokenetworking"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenamevm]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "vmName": {
+                        "value": "[variables('vmOnPremName')]"
+                    },
+                    "nicName": {
+                        "value": "[variables('nicVmOnPremName')]"
+                    },
+                    "vnetName": {
+                        "value": "[variables('vnetOnPrem').vnetOnPremName]"
+                    },
+                    "subnet": {
+                        "value": "[variables('vnetOnPrem').subnetOnPremDefaultName]"
+                    },
+                    "virtualMachineSize": {
+                        "value": "[parameters('virtualMachineSize')]"
+                    },
+                    "vmUser": {
+                        "value": "[parameters('vmUser')]"
+                    },
+                    "vmpass": {
+                        "value": "[parameters('vmPass')]"
+                    },
+                    "diskType": {
+                        "value": "[parameters('diskType')]"
+                    },
+                    "scriptURL": {
+                        "value": "[variables('configuration').uriinstallscripts]"
+                    }
+
+
+                }
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "virtualmachinespoke",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "hubspokenetworking"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenamevm]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "vmName": {
+                        "value": "[variables('vmSpokeName')]"
+                    },
+                    "nicName": {
+                        "value": "[variables('nicVmSpokeName')]"
+                    },
+                    "vnetName": {
+                        "value": "[variables('vnetSpoke').vnetSpokeName]"
+                    },
+                    "subnet": {
+                        "value": "[variables('vnetSpoke').subnetSpokeDefaultName]"
+                    },
+                    "virtualMachineSize": {
+                        "value": "[parameters('virtualMachineSize')]"
+                    },
+                    "vmUser": {
+                        "value": "[parameters('vmUser')]"
+                    },                    
+                    "vmpass": {
+                        "value": "[parameters('vmPass')]"
+                    },
+                    "diskType": {
+                        "value": "[parameters('diskType')]"
+                    },
+                    "scriptURL": {
+                        "value": "[variables('configuration').uriinstallscripts]"
+                    }
+
+                }
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "nsg",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "virtualmachineonprem",
+                "virtualmachinespoke"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenamensg]",
+                    "contentVersion": "1.0.0.0"
+                }
+            }
+        },
+
+        {
+            "apiVersion": "2017-05-10",
+            "name": "vpngateways",
+            "condition": "[equals(parameters('deploygw'),'yes')]",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "hubspokenetworking"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenamegateways]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "gatewayPIPOnPremName": {
+                        "value": "[variables('vnetOnPrem').gatewayPIPOnPremName]"
+                    },
+                    "vnetOnPremName": {
+                        "value": "[variables('vnetOnPrem').vnetOnPremName]"
+                    },
+                    "vnetOnPremAddressSpace": {
+                        "value": "[variables('vnetOnPrem').vnetOnPremAddressSpace]"
+                    },
+                    "gatewayNameOnPrem": {
+                        "value": "[variables('vnetOnPrem').gatewayName]"
+                    },
+                    "gatewayPIPHubName": {
+                        "value": "[variables('vnetHub').gatewayPIPHubName]"
+                    },
+                    "vnetHubName": {
+                        "value": "[variables('vnetHub').vnetHubName]"
+                    },
+                    "vnetHubAddressSpace": {
+                        "value": "[variables('vnetHub').vnetHubAddressSpace]"
+                    },
+                    "gatewayNameHub": {
+                        "value": "[variables('vnetHub').gatewayName]"
+                    }
+                }
+            }
+        }
+
+    ],
+    "outputs": {
+        "storageblobendpoint": {
+            "type": "string",
+            "value": "[concat(variables('storageAcctName'), '.blob.core.windows.net')]"
+        },
+        "storageconnstring": {
+            "type": "string",
+            "value": "[reference('storageprivatelink').outputs.storageconnstring.value]"
+        },
+        "vmuser": {
+            "type": "string",
+            "value": "[parameters('vmUser')]"
+        },
+        "vmpass": {
+            "type": "string",
+            "value": "[parameters('vmPass')]"
+        },
+        "vmonpremurl": {
+            "type": "string",
+            "value": "[reference('virtualmachineonprem').outputs.vmdnsurl.value]"
+        },
+        "vmspokeurl": {
+            "type": "string",
+            "value": "[reference('virtualmachinespoke').outputs.vmdnsurl.value]"
+        }
+
+    }
+}

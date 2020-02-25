@@ -1,0 +1,310 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "gatewayPIPOnPremName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the public ip for the vpn gw on the onprem vnet"
+            }
+        },
+        "vnetOnPremName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the onprem vnet"
+            }
+        },
+        "vnetOnPremAddressSpace": {
+            "type": "string",
+            "metadata": {
+                "description": "Address space if the on-prem vnet"
+            }
+        },
+        "gatewayNameOnPrem": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the on-prem vpn gateway"
+            }
+        },
+        "gatewayPIPHubName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the public ip for the vpn gw on the onprem vnet"
+            }
+        },
+        "vnetHubName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the onprem vnet"
+            }
+        },
+        "vnetHubAddressSpace": {
+            "type": "string",
+            "metadata": {
+                "description": "Address space of the hub vnet"
+            }
+        },
+        "gatewayNameHub": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the onprem vpn gateway"
+            }
+        }
+
+
+    },
+    "variables": {
+        "vnetOnPrem": {
+            "vnetOnPremName": "[parameters('vnetOnPremName')]",
+            "vnetOnPremAddressSpace": "[parameters('vnetOnPremAddressSpace')]",
+            "gatewayPIPOnPremName": "[parameters('gatewayPIPOnPremName')]",
+            "gatewayNameOnPrem": "[parameters('gatewayNameOnPrem')]"
+        },
+        "vnetHub": {
+            "vnetHubName": "[parameters('vnetHubName')]",
+            "vnetHubAddressSpace": "[parameters('vnetHubAddressSpace')]",
+            "gatewayPIPHubName": "[parameters('gatewayPIPHubName')]",
+            "gatewayNameHub": "[parameters('gatewayNameHub')]"
+        }
+
+    },
+    "resources": [
+        {
+            "apiVersion": "2019-09-01",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('vnetOnPrem').gatewayPIPOnPremName]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
+            "name": "[variables('vnetOnPrem').gatewayNameOnPrem]",
+            "type": "Microsoft.Network/virtualNetworkGateways",
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('vnetOnPrem').gatewayPIPOnPremName)]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "vnetGatewayConfig",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetOnPrem').vnetOnPremName, 'GatewaySubnet')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('vnetOnPrem').gatewayPIPOnPremName)]"
+                            }
+                        }
+                    }
+                ],
+                "sku": {
+                    "name": "Basic",
+                    "tier": "Basic"
+                },
+                "gatewayType": "Vpn",
+                "vpnType": "RouteBased"
+            }
+        },
+        {
+            "apiVersion": "2019-09-01",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('vnetHub').gatewayPIPHubName]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
+            "name": "[variables('vnetHub').gatewayNameHub]",
+            "type": "Microsoft.Network/virtualNetworkGateways",
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('vnetHub').gatewayPIPHubName)]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "vnetGatewayConfig",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetHub').vnetHubName, 'GatewaySubnet')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('vnetHub').gatewayPIPHubName)]"
+                            }
+                        }
+                    }
+                ],
+                "sku": {
+                    "name": "Basic",
+                    "tier": "Basic"
+                },
+                "gatewayType": "Vpn",
+                "vpnType": "RouteBased"
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "linkedTemplateGetIpOnPrem",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('vnetOnPrem').gatewayNameOnPrem)]"
+            ],
+            "properties": {
+                "expressionEvaluationOptions": {
+                    "scope": "inner"
+                },
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "ipName": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                    ],
+                    "outputs": {
+                        "ipoutgwonprem": {
+                            "type": "String",
+                            "value": "[reference(parameters('ipName'),'2019-09-01').ipAddress]"
+                        }
+                    }
+                },
+                "parameters": {
+                    "ipName": {
+                        "value": "[resourceId('Microsoft.Network/publicIPAddresses', variables('vnetOnPrem').gatewayPIPOnPremName)]"
+                    }
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "linkedTemplateGetIpHub",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('vnetHub').gatewayNameHub)]"
+            ],
+            "properties": {
+                "expressionEvaluationOptions": {
+                    "scope": "inner"
+                },
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "ipName": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                    ],
+                    "outputs": {
+                        "ipoutgwonprem": {
+                            "type": "String",
+                            "value": "[reference(parameters('ipName'),'2019-09-01').ipAddress]"
+                        }
+                    }
+                },
+                "parameters": {
+                    "ipName": {
+                        "value": "[resourceId('Microsoft.Network/publicIPAddresses', variables('vnetHub').gatewayPIPHubName)]"
+                    }
+                }
+
+            }
+        },
+        {
+            "name": "localNetworkGatewayOnprem",
+            "type": "Microsoft.Network/localNetworkGateways",
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('vnetOnPrem').gatewayPIPOnPremName)]",
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('vnetOnPrem').gatewayNameOnPrem)]",
+                "linkedTemplateGetIpOnPrem"
+            ],
+            "properties": {
+                "localNetworkAddressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnetOnPrem').vnetOnPremAddressSpace]"
+                    ]
+                },
+                "gatewayIpAddress": "[reference('linkedTemplateGetIpOnPrem').outputs.ipoutgwonprem.value]"
+            }
+        },
+        {
+            "name": "localNetworkGatewayHub",
+            "type": "Microsoft.Network/localNetworkGateways",
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('vnetHub').gatewayPIPHubName)]",
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('vnetHub').gatewayNameHub)]",
+                "linkedTemplateGetIpHub"
+            ],
+            "properties": {
+                "localNetworkAddressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnetHub').vnetHubAddressSpace]"
+                    ]
+                },
+                "gatewayIpAddress": "[reference('linkedTemplateGetIpHub').outputs.ipoutgwonprem.value]"
+            }
+        },
+
+        {
+            "name": "conn-to-hub",
+            "type": "Microsoft.Network/connections",
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('vnetOnPrem').gatewayNameOnPrem)]",
+                "[resourceId('Microsoft.Network/localNetworkGateways', 'localNetworkGatewayHub')]"
+            ],
+            "properties": {
+                "virtualNetworkGateway1": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('vnetOnPrem').gatewayNameOnPrem)]"
+                },
+                "localNetworkGateway2": {
+                    "id": "[resourceId('Microsoft.Network/localNetworkGateways', 'localNetworkGatewayHub')]"
+                },
+                "connectionType": "IPsec",
+                "routingWeight": 0,
+                "sharedKey": "sharedkey"
+            }
+        },
+        {
+            "name": "conn-to-onprem",
+            "type": "Microsoft.Network/connections",
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('vnetHub').gatewayNameHub)]",
+                "[resourceId('Microsoft.Network/localNetworkGateways', 'localNetworkGatewayOnprem')]"
+            ],
+            "properties": {
+                "virtualNetworkGateway1": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('vnetHub').gatewayNameHub)]"
+                },
+                "localNetworkGateway2": {
+                    "id": "[resourceId('Microsoft.Network/localNetworkGateways', 'localNetworkGatewayOnprem')]"
+                },
+                "connectionType": "IPsec",
+                "routingWeight": 0,
+                "sharedKey": "sharedkey"
+            }
+        }
+    ],
+    "outputs": {
+    }
+}
