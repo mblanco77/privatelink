@@ -6,7 +6,7 @@
             "value": "Standard_B2ms"
         },
         "_artifactsLocation" : {
-            "value": "https://raw.githubusercontent.com/mblanco77/privatelink/master/endpointblob"
+            "value": "https://raw.githubusercontent.com/mblanco77/privatelink/master/privatelinkservice"
         }        
     }
 

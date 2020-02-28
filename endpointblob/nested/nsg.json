@@ -34,10 +34,10 @@
                             "protocol": "*",
                             "sourcePortRange": "*",
                             "destinationPortRange": "*",
-                            "sourceAddressPrefix": "*",
+                            "sourceAddressPrefix": "VirtualNetwork",
                             "destinationAddressPrefix": "Internet",
                             "access": "Deny",
-                            "priority": 200,
+                            "priority": 4095,
                             "direction": "Outbound"
                         }
                     }
