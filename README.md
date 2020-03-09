@@ -29,10 +29,7 @@ This scenario is intended to demonstrate private link enpoint in an
 
 # [Private Link Service](privatelinkservice/README.md)
 
-This scenario is intended to demonstrate a connection between a privatelink service (provider) and a privatelink endpoint (consumer) where the provider wants to expose privately a service behind a standard load balancer and can be consumed by multiple clients using a private ip.
-
-
-This can be enabled in different tenant and subscriptions
+This scenario is intended to demonstrate a connection between a privatelink service (provider) and a privatelink endpoint (consumer) where the provider wants to expose privately a service behind a standard load balancer and can be consumed by multiple clients using a private ip on the client address space.
 
  
-![](images/scenarioprivateservice.png)
+![](privatelinkservice/images/scenarioprivateservice.png)

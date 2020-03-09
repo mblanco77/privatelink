@@ -257,7 +257,6 @@
                     {
                         "name": "[parameters('privateEndpointName')]",
                         "properties": {
-//                            "privateLinkServiceId": "/subscriptions/5764aa39-54c9-4e51-8ce1-4b6d9df54964/resourceGroups/rgprivatelinkservice/providers/Microsoft.Network/privateLinkServices/privatelinkservice1"
                            "privateLinkServiceId": "[resourceId('Microsoft.Network/privateLinkServices',parameters('privateserviceName'))]"
                         }
                     }
