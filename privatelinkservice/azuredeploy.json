@@ -191,7 +191,7 @@
             "type": "string",
             "value": "[parameters('vmPass')]"
         },
-        "vmonpremurl": {
+        "vmconsumerurl": {
             "type": "string",
             "value": "[reference('consumerenviroment').outputs.vmdnsurl.value]"
         }
