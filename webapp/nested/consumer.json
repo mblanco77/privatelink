@@ -288,7 +288,7 @@
                     ]
                 },
                 "protectedSettings": {
-                    "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ./webapp/scripts/installsoftware.ps1"
+                    "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ./installsoftware.ps1"
                 }
             }
         },
