@@ -28,7 +28,7 @@
         {
             "name": "[parameters('azsqlservname')]",
             "type": "Microsoft.Sql/servers",
-            "apiVersion": "2015-05-01-preview",
+            "apiVersion": "2019-06-01-preview",
             "location": "[resourceGroup().location]",
             "tags": {
                 "displayName": "[parameters('azsqlservname')]"
