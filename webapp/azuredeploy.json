@@ -275,6 +275,10 @@
         "vmconsumerurl": {
             "type": "string",
             "value": "[reference('consumerenviroment').outputs.vmdnsurl.value]"
+        },
+        "webappurl" : {
+            "type" : "string",
+            "value" : "[reference('webapp').outputs.websiteurl.value]"
         }
 
     }

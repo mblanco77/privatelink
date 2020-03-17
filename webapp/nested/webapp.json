@@ -106,7 +106,7 @@
                     "location": "[resourceGroup().location]",
                     "dependsOn": [
                         "[resourceId('Microsoft.Web/sites', variables('websitename'))]",
-                        "[resourceId('Microsoft.Web/serverfarms', 'appServicePlanpvtlink')]"
+                        "MSDeploy"
                     ],
                     "properties": {
                         "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetConsumerName'), parameters('subnetConsumerWebappName'))]",
@@ -117,9 +117,9 @@
         }
     ],
     "outputs": {
-        "websitename": {
+        "websiteurl": {
             "type": "string",
-            "value": "[variables('websitename')]"
+            "value": "[reference(resourceId('Microsoft.Web/sites', variables('websitename'))).defaultHostName]"
         },
         "subnetResourceId": {
             "type": "string",
