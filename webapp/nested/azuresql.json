@@ -46,7 +46,7 @@
         {
             "name": "[variables('dbname')]",
             "type": "Microsoft.Sql/servers/databases",
-            "apiVersion": "2014-04-01",
+            "apiVersion": "2019-06-01-preview",
             "location": "[resourceGroup().location]",
             "tags": {
                 "displayName": "sqlDatabase1"
@@ -57,7 +57,7 @@
             "properties": {
                 "collation": "SQL_Latin1_General_CP1_CI_AS",
                 "edition": "Basic",
-                "maxSizeBytes": "1073741824",
+                "maxSizeBytes": 1073741824,
                 "requestedServiceObjectiveName": "Basic"
             }
         }
