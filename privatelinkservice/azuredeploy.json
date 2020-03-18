@@ -67,7 +67,7 @@
         "vmProviderName": "[take(concat('vmprovider', uniqueString(resourceGroup().id)),15)]",
         "vmConsumerName": "[take(concat('vmconsumer', uniqueString(resourceGroup().id)),15)]",
         "nicVmProviderName": "[concat(variables('vmProviderName'),'-NetworkInterface')]",
-        "nicVmConsumerName": "[concat(variables('vmConsumerName'),'-NetworkInterface')]",
+        "nicVmConsumerName": "[concat(variables('vmConsumerName'),'-NetworkInterface')]"
     },
     "resources": [
         {

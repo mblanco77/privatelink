@@ -3,7 +3,7 @@
 This scenario shows a web app that comunicates privately to an azure sql database using a privatelink endpoint.
 The Frontend of the webapp is public
 
-[![Deploy to Azure](https://azuredeploy.net/deploybutton.png)](https://azuredeploy.net/)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmblanco77%2Fprivatelink%2Fmaster%2Fwebapp%2Fazuredeploy.json)
 
  
 ![](images/webappsqlpvtlink.png)
