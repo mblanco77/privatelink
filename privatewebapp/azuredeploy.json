@@ -346,9 +346,9 @@
             "type": "string",
             "value": "[parameters('vmPass')]"
         },
-        "vmServiceurl": {
+        "vmClienturl": {
             "type": "string",
-            "value": "[reference('Serviceenviroment').outputs.vmdnsurl.value]"
+            "value": "[reference('clientenviroment').outputs.vmclienturl.value]"
         },
         "webappurl" : {
             "type" : "string",
