@@ -1,0 +1,137 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "artifacts location"
+            }
+        },
+        "sqlConnString": {
+            "type": "string",
+            "metadata": {
+                "description": "connection string to the azure sql database"
+            }
+        },
+        "vnetServiceName": {
+            "type": "string",
+            "metadata": {
+                "description": "Service vnet name"
+            }
+        },
+        "subnetServiceWebappName": {
+            "type": "string",
+            "metadata": {
+                "description": "Service subnet name"
+            }
+        },
+        "webAppName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the webapp"
+            }
+        }
+
+    },
+    "variables": {
+        "websitename": "[parameters('webAppName')]"
+    },
+    "resources": [
+        {
+            "name": "appServicePlanpvtlink",
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2018-02-01",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "P1v2",
+                "capacity": 1
+            },
+            "tags": {
+                "displayName": "appServicePlanpvtlink"
+            },
+            "properties": {
+                "name": "appServicePlanpvtlink"
+            }
+        },
+        {
+            "name": "[variables('websitename')]",
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2018-11-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "[concat('hidden-related:', resourceGroup().id, '/providers/Microsoft.Web/serverfarms/appServicePlanpvtlink')]": "Resource",
+                "displayName": "[variables('websitename')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', 'appServicePlanpvtlink')]"
+            ],
+            "properties": {
+                "name": "[variables('websitename')]",
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'appServicePlanpvtlink')]"
+            },
+            "resources": [
+                {
+                    "apiVersion": "2018-11-01",
+                    "type": "config",
+                    "name": "appsettings",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/Sites/', variables('websitename'))]",
+                        "MSDeploy"
+                    ],
+                    "tags": {
+                        "displayName": "WebAppSettings"
+                    },
+                    "properties": {
+                        "App:SqlDatabase:ConnectionString": "[parameters('sqlConnString')]"
+                    }
+                },
+                {
+                    "name": "MSDeploy",
+                    "type": "extensions",
+                    "apiVersion": "2018-11-01",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', variables('websitename'))]"
+                    ],
+                    "tags": {
+                        "displayName": "Web Deploy for webapppvtlink"
+                    },
+                    "properties": {
+                        "packageUri": "[concat(parameters('artifactsLocation'), '/Relecloud.Web.zip')]",
+                        "dbType": "None",
+                        "connectionString": "",
+                        "setParameters": {
+                            "IIS Web Application Name": "[variables('websitename')]"
+                        }
+                    }
+                },
+                {
+                    "apiVersion": "2018-11-01",
+                    "type": "networkConfig",
+                    "name": "virtualNetwork",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', variables('websitename'))]",
+                        "MSDeploy"
+                    ],
+                    "properties": {
+                        "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetServiceName'), parameters('subnetServiceWebappName'))]",
+                        "swiftSupported": true
+                    }
+                }
+            ]
+        }
+    ],
+    "outputs": {
+        "websiteurl": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Web/sites', variables('websitename'))).defaultHostName]"
+        },
+        "subnetResourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetServiceName'), parameters('subnetServiceWebappName'))]"
+        }
+
+    }
+}

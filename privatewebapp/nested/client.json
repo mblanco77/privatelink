@@ -1,0 +1,299 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vnetClientName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the Client vnet"
+            }
+        },
+        "vnetClientaddressspace": {
+            "type": "string",
+            "metadata": {
+                "description": "Address Space of the Client vnet"
+            }
+        },
+        "subnetClientdefaultprefix": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet prefix on the Client vnet"
+            }
+        },
+        "subnetClientDefaultName": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet name on the Client vnet"
+            }
+        },
+        "clientVmName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the client virtual machine"
+            }
+        },
+        "nicName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the nic"
+            }
+        },
+        "virtualMachineSize": {
+            "type": "string",
+            "metadata": {
+                "description": "size of the vm"
+            }
+        },
+        "vmUser": {
+            "type": "string",
+            "metadata": {
+                "description": "vm password"
+            }
+        },
+        "vmPass": {
+            "type": "securestring",
+            "metadata": {
+                "description": "vm password"
+            }
+        },
+        "diskType": {
+            "type": "string",
+            "metadata": {
+                "description": "vm disk type"
+            }
+        },
+        "webAppPrivateEndpointName": {
+            "type": "string",
+            "metadata": {
+                "description": "private link endpoint name"
+            }
+        },
+        "webAppName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the webapp site"
+            }
+
+        },
+        "artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "artifacts location"
+            }
+
+        }
+
+    },
+    "variables": {
+        "pipname": "[concat('pip',parameters('clientVmName'))]",
+        "scriptURL": "[concat(parameters('artifactsLocation'),'/scripts/installsoftware.ps1')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "nsgClient",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2019-09-01",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowRdpInbound",
+                        "properties": {
+                            "description": "Allow RDP Access",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('vnetClientName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "dependsOn": [
+                "nsgClient"
+            ],
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[parameters('vnetClientName')]"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetClientaddressspace')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('subnetClientDefaultName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetClientdefaultprefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsgClient')]"
+                            },
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[variables('pipname')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[variables('pipname')]"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[tolower(parameters('clientVmName'))]"
+                }
+            }
+        },
+        {
+            "name": "[parameters('nicName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[parameters('vnetClientName')]",
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('pipname'))]"
+            ],
+            "tags": {
+                "displayName": "[parameters('nicName')]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipConfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('pipname'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetClientName'), parameters('subnetClientDefaultName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('clientVmName')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-07-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', parameters('nicName'))]"
+            ],
+            "tags": {
+                "displayName": "[parameters('clientVmName')]"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('virtualMachineSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[parameters('clientVmName')]",
+                    "adminUsername": "[parameters('vmUser')]",
+                    "adminPassword": "[parameters('vmPass')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2016-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[concat(parameters('clientVmName'),'OsDisk')]",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('diskType')]"
+                        },
+                        "diskSizeGB": 128
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('nicName'))]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(parameters('clientVmName'),'/installcustomscript')]",
+            "apiVersion": "2018-06-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "install software for Windows VM"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('clientVmName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.9",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "[variables('scriptURL')]"
+                    ]
+                },
+                "protectedSettings": {
+                    "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ./installsoftware.ps1"
+                }
+            }
+        },
+
+        {
+            "location": "[resourceGroup().location]",
+            "name": "[parameters('webAppPrivateEndpointName')]",
+            "dependsOn": [
+                "[parameters('vnetClientName')]"
+            ],
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2019-04-01",
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetClientName'), parameters('subnetClientDefaultName'))]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[parameters('webAppPrivateEndpointName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Web/sites',parameters('webAppName'))]",
+                            "groupIds": [
+                                "sites"
+                            ]
+                        }
+                    }
+                ]
+            },
+            "tags": {
+            }
+        },
+    ],
+    "outputs": {
+        "vmclienturl": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('pipname'))).dnsSettings.fqdn]"
+        }
+    }
+}

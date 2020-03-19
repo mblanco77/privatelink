@@ -1,0 +1,142 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vnetServiceName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the Service vnet"
+            }
+        },
+        "vnetServiceaddressspace": {
+            "type": "string",
+            "metadata": {
+                "description": "Address Space of the Service vnet"
+            }
+        },
+        "subnetServicedefaultprefix": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet prefix on the Service vnet"
+            }
+        },
+        "subnetServiceDefaultName": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet name on the Service vnet"
+            }
+        },
+        "subnetServiceWebappprefix": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet prefix on the Service vnet"
+            }
+        },
+        "subnetServiceWebappName": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet name on the Service vnet"
+            }
+        }
+
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "nsgService",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2019-09-01",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowRdpInbound",
+                        "properties": {
+                            "description": "Allow RDP Access",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "allow",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "Block_Internet",
+                        "properties": {
+                            "description": "Block Internet",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "destinationAddressPrefix": "Internet",
+                            "access": "Deny",
+                            "priority": 4095,
+                            "direction": "Outbound"
+                        }
+                    }
+
+                ]
+            }
+        },
+        {
+            "name": "[parameters('vnetServiceName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "dependsOn": [
+            ],
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[parameters('vnetServiceName')]"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetServiceaddressspace')]"
+                    ]
+                },
+                "dhcpOptions": {
+                    "dnsServers": [
+                        "10.5.0.5"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('subnetServiceDefaultName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetServicedefaultprefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsgService')]"
+                            },
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        }
+                    },
+                    {
+                        "name": "[parameters('subnetServiceWebappName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetServiceWebappPrefix')]",
+                            "delegations": [
+                                {
+                                    "name": "delegation",
+                                    "properties": {
+                                        "serviceName": "Microsoft.Web/serverfarms"
+                                    }
+                                }
+                            ],
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsgService')]"
+                            }
+                        }
+                    }
+
+                ]
+            }
+        }
+    ],
+    "outputs": {
+    }
+}

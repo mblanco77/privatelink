@@ -8,6 +8,7 @@ This is intended to review different scenarios where azure privatelink could be 
 - [Private Link Endpoint to a blob storage](#Private-Link-Endpoint-to-a-blob-storage)
 - [Private Link Service scenario](#Private-Link-Service)
 - [Webapp and azure sql scenario](#Web-Application-private-backend)
+- [Private web app](#Private-Web-Application-with-privatelink)
 # General Info
 
 [Azure's Private Link Service](https://docs.microsoft.com/en-us/azure/private-link/) allows to consume privately PaaS services like (storage accounts,sql database, cosmos db) 
@@ -49,3 +50,15 @@ The Frontend of the webapp is public
 
  
 ![](webapp/images/webappsqlpvtlink.png)
+
+
+# [Private Web Application with privatelink](privatewebapp/README.md)
+
+This scenario shows a web app that comunicates privately to an azure sql database using a privatelink endpoint.
+The Frontend of the webapp is private
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmblanco77%2Fprivatelink%2Fmaster%2Fprivatewebapp%2Fazuredeploy.json)
+
+ 
+![](privatewebapp/images/pvtfrontendwebapp.png)
+
