@@ -283,7 +283,8 @@
             "name": "clientenviroment",
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
-                "nsg"
+                "nsg",
+                "webapp"
             ],
             "properties": {
                 "mode": "Incremental",
