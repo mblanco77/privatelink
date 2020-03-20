@@ -76,12 +76,17 @@
         "vmDnsName": "[take(concat('vmDns', uniqueString(resourceGroup().id)),15)]",
         "vmClientName": "[take(concat('vmClient', uniqueString(resourceGroup().id)),15)]",
         "privateDnsZones_privatelink_database_windows_net_name": "privatelink.database.windows.net",
+        "privateDnsZones_privatelink_azurewebsites_net_name": "privatelink.azurewebsites.net",
         "nicVmServiceName": "[concat(variables('vmDnsName'),'-NetworkInterface')]",
         "nicVmClientName": "[concat(variables('vmClientName'),'-NetworkInterface')]",        
         "linkvnetname": "linkvnet",
-        "privatezoneLinkVnetNames": [
+        "privatezoneSqlLinkVnetNames": [
             "[variables('vnetService').vnetServiceName]"
         ],
+        "privatezoneWebappLinkVnetNames": [
+            "[variables('vnetClient').vnetClientName]"
+        ],
+
         "sqlConnString": "[concat('Server=tcp:',variables('azsqlservname'), '.database.windows.net,1433;Initial Catalog=dbwebapp;Persist Security Info=False;User ID=', parameters('vmUser'), ';Password=', parameters('vmPass'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
 
     },
@@ -114,7 +119,7 @@
         },
         {
             "apiVersion": "2017-05-10",
-            "name": "Serviceenviroment",
+            "name": "serviceenviroment",
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
                 "azuresqlserver"
@@ -177,10 +182,10 @@
         },
         {
             "apiVersion": "2017-05-10",
-            "name": "privatednszone",
+            "name": "privatednszonesql",
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
-                "Serviceenviroment"
+                "serviceenviroment"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -192,17 +197,17 @@
                     "privateDnsZones_privatelink_name": {
                         "value": "[variables('privateDnsZones_privatelink_database_windows_net_name')]"
                     },
-                    "azureSqlServerName": {
+                    "serviceName": {
                         "value": "[variables('azsqlservname')]"
                     },
                     "privatelinkendpointipaddress": {
-                        "value": "[reference('Serviceenviroment').outputs.privatelinkprivateIPAddress.value]"
+                        "value": "[reference('serviceenviroment').outputs.privatelinkprivateIPAddress.value]"
                     },
                     "linkvnetname": {
                         "value": "[variables('linkvnetname')]"
                     },
                     "vnetnames": {
-                        "value": "[variables('privatezoneLinkVnetNames')]"
+                        "value": "[variables('privatezoneSqlLinkVnetNames')]"
                     }
 
                 }
@@ -214,7 +219,7 @@
             "name": "webapp",
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
-                "Serviceenviroment"
+                "serviceenviroment"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -247,7 +252,7 @@
             "name": "nsg",
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
-                "Serviceenviroment"
+                "serviceenviroment"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -332,6 +337,40 @@
                     "artifactsLocation": {
                         "value": "[parameters('_artifactsLocation')]"
                     }
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "privatednszonewebapp",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "clientenviroment"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenameprivatednszone]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "privateDnsZones_privatelink_name": {
+                        "value": "[variables('privateDnsZones_privatelink_azurewebsites_net_name')]"
+                    },
+                    "serviceName": {
+                        "value": "[variables('webappName')]"
+                    },
+                    "privatelinkendpointipaddress": {
+                        "value": "[reference('clientenviroment').outputs.privatelinkprivateIPAddress.value]"
+                    },
+                    "linkvnetname": {
+                        "value": "[variables('linkvnetname')]"
+                    },
+                    "vnetnames": {
+                        "value": "[variables('privatezoneWebappLinkVnetNames')]"
+                    }
+
                 }
 
             }

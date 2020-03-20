@@ -288,9 +288,73 @@
             },
             "tags": {
             }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "linkedTemplateGetPvtLinkNic",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                    ],
+                    "outputs": {
+                        "privatelinknicid": {
+                            "type": "string",
+                            "value": "[reference(resourceId('Microsoft.Network/privateEndpoints', parameters('webAppPrivateEndpointName')),'2019-09-01').networkInterfaces[0].id]"
+                        }
+
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('webAppPrivateEndpointName'))]"
+            ]
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "linkedTemplateGetIpAddressPvtlink",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "expressionEvaluationOptions": {
+                    "scope": "inner"
+                },
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "nicId": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                    ],
+                    "outputs": {
+                        "ipnic": {
+                            "type": "Object",
+                            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces',parameters('nicId')),'2019-04-01')]"
+                        }
+                    }
+                },
+                "parameters": {
+                    "nicId": {
+                        "value": "[last(split(string(reference('linkedTemplateGetPvtLinkNic').outputs.privatelinknicid.value),'/'))]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "linkedTemplateGetPvtLinkNic"
+            ]
         }
     ],
     "outputs": {
+        "privatelinkprivateIPAddress": {
+            "type": "string",
+            "value": "[reference('linkedTemplateGetIpAddressPvtlink').outputs.ipnic.value.ipConfigurations[0].properties.privateIPAddress]"
+        },
         "vmclienturl": {
             "type": "string",
             "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('pipname'))).dnsSettings.fqdn]"

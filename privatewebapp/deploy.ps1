@@ -3,10 +3,13 @@
 #Select-AzSubscription -SubscriptionId "xxxxxxxxxxxxxxxxx"
 
 $resourceGroupName = Read-Host -Prompt "Enter the Resource Group name"
-$location = Read-Host -Prompt "Enter the location (i.e. centralus)"
+$location = Read-Host -Prompt "Enter the location (i.e. eastus)"
 $vmUser = Read-Host -Prompt "Enter the Vm UserName" 
 $vmPass = Read-Host -Prompt "Enter the Vm Password or enter to autogen" -AsSecureString
 
+if ([string]::IsNullOrEmpty($resourceGroupName)){
+    $location = "rgprivatelinkpvtwebapp"
+}
 if ([string]::IsNullOrEmpty($location)){
     $location = "eastus"
 }

@@ -8,10 +8,10 @@
                 "description": "private dns zone name"
             }
         },
-        "azureSqlServerName": {
+        "serviceName": {
             "type": "string",
             "metadata": {
-                "description": "name of the azure sql server name"
+                "description": "name of the service"
             }
         },
         "privatelinkendpointipaddress": {
@@ -52,7 +52,7 @@
         {
             "type": "Microsoft.Network/privateDnsZones/A",
             "apiVersion": "2018-09-01",
-            "name": "[concat(parameters('privateDnsZones_privatelink_name'), '/', parameters('azureSqlServerName'))]",
+            "name": "[concat(parameters('privateDnsZones_privatelink_name'), '/', parameters('serviceName'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDnsZones_privatelink_name'))]"
             ],
