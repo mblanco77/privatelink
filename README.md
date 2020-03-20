@@ -54,11 +54,12 @@ The Frontend of the webapp is public
 
 # [Private Web Application with privatelink](privatewebapp/README.md)
 
-This scenario shows a web app that comunicates privately to an azure sql database using a privatelink endpoint.
-The Frontend of the webapp is private
+This scenario shows a web app that comunicates privately to an azure sql database and has a private frontend.
+Consumed by a client in a private manner via appservice private link.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmblanco77%2Fprivatelink%2Fmaster%2Fprivatewebapp%2Fazuredeploy.json)
 
  
+
 ![](privatewebapp/images/pvtfrontendwebapp.png)
 
