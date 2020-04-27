@@ -1,0 +1,197 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmUser": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "username for the Virtual Machine."
+            }
+        },
+        "vmPass": {
+            "type": "securestring",
+            "defaultValue": "[concat('P1',uniquestring(resourceGroup().id))]",
+            "metadata": {
+                "description": "Password for the Virtual Machine."
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located."
+            },
+            "defaultValue": "https://raw.githubusercontent.com/mblanco77/privatelink/master/webappazuredns"
+        }
+    },
+    "variables": {
+        "vnetConsumer": {
+            "vnetConsumerName": "vnet-consumer-001",
+            "vnetConsumerAddressSpace": "10.5.0.0/24",
+            "subnetConsumerDefaultPrefix": "10.5.0.0/25",
+            "subnetConsumerDefaultName": "snet-consumer-default",
+            "subnetConsumerWebappPrefix": "10.5.0.128/28",
+            "subnetConsumerWebappName": "snet-consumer-webapp"
+        },
+        "configuration": {
+            "uritemplatenameazuresqlserver": "[concat(parameters('_artifactsLocation'),'/nested/azuresql.json')]",
+            "uritemplatenameconsumer": "[concat(parameters('_artifactsLocation'),'/nested/consumer.json')]",
+            "uritemplatenameprivatednszone": "[concat(parameters('_artifactsLocation'),'/nested/privatednszone.json')]",
+            "uritemplatenamewebapp": "[concat(parameters('_artifactsLocation'),'/nested/webapp.json')]",
+            "uritemplatenamensg": "[concat(parameters('_artifactsLocation'),'/nested/nsg.json')]"
+        },
+        "privateEndpointnameConsumer": "pvtlinkEndPoint",
+        "azsqlservname": "[take(concat('sqlwebapp', uniqueString(resourceGroup().id)),15)]",
+        "vmConsumerName": "[take(concat('vmconsumer', uniqueString(resourceGroup().id)),15)]",
+        "privateDnsZones_privatelink_database_windows_net_name": "privatelink.database.windows.net",
+        "nicVmConsumerName": "[concat(variables('vmConsumerName'),'-NetworkInterface')]",
+        "linkvnetname": "linkvnet",
+        "privatezoneLinkVnetNames": [
+            "[variables('vnetConsumer').vnetConsumerName]"
+        ],
+        "sqlConnString": "[concat('Server=tcp:',variables('azsqlservname'), '.database.windows.net,1433;Initial Catalog=dbwebapp;Persist Security Info=False;User ID=', parameters('vmUser'), ';Password=', parameters('vmPass'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
+
+    },
+    "resources": [
+        {
+            "apiVersion": "2017-05-10",
+            "name": "azuresqlserver",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenameazuresqlserver]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "azsqlservname": {
+                        "value": "[variables('azsqlservname')]"
+                    },
+                    "admusername": {
+                        "value": "[parameters('vmUser')]"
+                    },
+                    "admpass": {
+                        "value": "[parameters('vmPass')]"
+                    }
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "consumerenviroment",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "azuresqlserver"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenameconsumer]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "vnetConsumerName": {
+                        "value": "[variables('vnetConsumer').vnetConsumerName]"
+                    },
+                    "vnetConsumeraddressspace": {
+                        "value": "[variables('vnetConsumer').vnetConsumeraddressspace]"
+                    },
+                    "subnetConsumerdefaultprefix": {
+                        "value": "[variables('vnetConsumer').subnetConsumerdefaultprefix]"
+                    },
+                    "subnetConsumerDefaultName": {
+                        "value": "[variables('vnetConsumer').subnetConsumerDefaultName]"
+                    },
+                    "subnetConsumerWebappprefix": {
+                        "value": "[variables('vnetConsumer').subnetConsumerWebappprefix]"
+                    },
+                    "subnetConsumerWebappName": {
+                        "value": "[variables('vnetConsumer').subnetConsumerWebappName]"
+                    },
+                    "privateEndpointName": {
+                        "value": "[variables('privateEndpointnameConsumer')]"
+                    },
+                    "sqlServerName": {
+                        "value": "[variables('azsqlservname')]"
+                    }
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "privatednszone",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "consumerenviroment"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenameprivatednszone]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "privateDnsZones_privatelink_name": {
+                        "value": "[variables('privateDnsZones_privatelink_database_windows_net_name')]"
+                    },
+                    "azureSqlServerName": {
+                        "value": "[variables('azsqlservname')]"
+                    },
+                    "privatelinkendpointipaddress": {
+                        "value": "[reference('consumerenviroment').outputs.privatelinkprivateIPAddress.value]"
+                    },
+                    "linkvnetname": {
+                        "value": "[variables('linkvnetname')]"
+                    },
+                    "vnetnames": {
+                        "value": "[variables('privatezoneLinkVnetNames')]"
+                    }
+
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "webapp",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "consumerenviroment"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uritemplatenamewebapp]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "artifactsLocation": {
+                        "value": "[parameters('_artifactsLocation')]"
+                    },
+                    "sqlConnString": {
+                        "value": "[variables('sqlConnString')]"
+                    },
+                    "vnetConsumerName": {
+                        "value": "[variables('vnetConsumer').vnetConsumerName]"
+                    },
+                    "subnetConsumerWebappName": {
+                        "value": "[variables('vnetConsumer').subnetConsumerWebappName]"
+                    }
+
+                }
+
+            }
+        }
+    ],
+    "outputs": {
+        "webappurl" : {
+            "type" : "string",
+            "value" : "[reference('webapp').outputs.websiteurl.value]"
+        }
+
+    }
+}
