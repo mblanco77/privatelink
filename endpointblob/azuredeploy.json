@@ -191,6 +191,9 @@
                     },
                     "subnet": {
                         "value": "[variables('vnetHub').subnetHubDefaultName]"
+                    },
+                    "autoApproval": {
+                        "value": "no"
                     }
                 }
 
@@ -213,11 +216,8 @@
                     "privateDnsZones_privatelink_blob_core_windows_net_name": {
                         "value": "[variables('privateDnsZones_privatelink_blob_core_windows_net_name')]"
                     },
-                    "storageAcctName": {
-                        "value": "[variables('storageAcctName')]"
-                    },
-                    "privatelinkendpointipaddress": {
-                        "value": "[reference('storageprivatelink').outputs.privatelinkprivateIPAddress.value]"
+                    "privateEndpoint_name" : {
+                          "value": "[variables('privateEndpointName')]"
                     },
                     "linkvnetname": {
                         "value": "[variables('linkvnetname')]"

@@ -8,16 +8,10 @@
                 "description": "private dns zone name"
             }
         },
-        "storageAcctName": {
+        "privateEndpoint_name": {
             "type": "string",
             "metadata": {
-                "description": "name of the storage account"
-            }
-        },
-        "privatelinkendpointipaddress": {
-            "type": "string",
-            "metadata": {
-                "description": "ip address of the private link endpoint"
+                "description": "privateendpoint name"
             }
         },
         "linkvnetname": {
@@ -34,6 +28,9 @@
 
         }
     },
+    "variables": {
+        "pvtendpointdnsgroupname": "[concat(parameters('privateEndpoint_name'),'/pvtendpointdnsgroupname')]"
+    },
     "resources": [
         {
             "type": "Microsoft.Network/privateDnsZones",
@@ -47,22 +44,6 @@
                 "numberOfRecordSets": 2,
                 "numberOfVirtualNetworkLinks": 2,
                 "numberOfVirtualNetworkLinksWithRegistration": 0
-            }
-        },
-        {
-            "type": "Microsoft.Network/privateDnsZones/A",
-            "apiVersion": "2018-09-01",
-            "name": "[concat(parameters('privateDnsZones_privatelink_blob_core_windows_net_name'), '/', parameters('storageAcctName'))]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDnsZones_privatelink_blob_core_windows_net_name'))]"
-            ],
-            "properties": {
-                "ttl": 3600,
-                "aRecords": [
-                    {
-                        "ipv4Address": "[parameters('privatelinkendpointipaddress')]"
-                    }
-                ]
             }
         },
         {
@@ -83,7 +64,27 @@
                 "name": "copylinks",
                 "count": "[length(parameters('vnetnames'))]"
             }
+        },
+        {
+            "apiVersion": "2020-03-01",
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "name": "[variables('pvtendpointdnsgroupname')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDnsZones_privatelink_blob_core_windows_net_name'))]"
+            ],
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "config1",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDnsZones_privatelink_blob_core_windows_net_name'))]"
+                        }
+                    }
+                ]
+            }
         }
+
 
     ],
     "outputs": {
