@@ -193,7 +193,7 @@
                         "value": "[variables('vnetHub').subnetHubDefaultName]"
                     },
                     "autoApproval": {
-                        "value": "no"
+                        "value": "yes"
                     }
                 }
 
