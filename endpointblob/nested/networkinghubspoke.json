@@ -63,7 +63,7 @@
                 "description": "gateway subnet prefix on the hub vnet"
             }
         },
-        "vNetHubtovNetSpokePeeringName": {
+        "peeringNameHubVnetToSpokeVnet": {
             "type": "string",
             "metadata": {
                 "description": "vnet peering name of Hub to Spoke"
@@ -93,7 +93,7 @@
                 "description": "default subnet name on the spoke vnet"
             }
         },
-        "vNetSpoketovNetHubPeeringName": {
+        "peeringNameSpokeVnetToHubVnet": {
             "type": "string",
             "metadata": {
                 "description": "vnet peering name of spoke to hub"
@@ -207,7 +207,7 @@
                 {
                     "apiVersion": "2019-09-01",
                     "type": "virtualNetworkPeerings",
-                    "name": "[parameters('vNetHubtovNetSpokePeeringName')]",
+                    "name": "[parameters('peeringNameHubVnetToSpokeVnet')]",
                     "location": "[resourceGroup().location]",
                     "dependsOn": [
                         "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetHubName'))]",
@@ -260,7 +260,7 @@
                 {
                     "apiVersion": "2019-09-01",
                     "type": "virtualNetworkPeerings",
-                    "name": "[parameters('vNetSpoketovNetHubPeeringName')]",
+                    "name": "[parameters('peeringNameSpokeVnetToHubVnet')]",
                     "location": "[resourceGroup().location]",
                     "dependsOn": [
                         "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetHubName'))]",

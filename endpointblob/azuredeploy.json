@@ -35,13 +35,20 @@
                 "description": "Password for the Virtual Machine."
             }
         },
-        "deploygw": {
+        "deployVpnGateways": {
             "type": "string",
             "defaultValue": "yes",
             "metadata": {
-                "description": "deploy gateways to connect via vpn on-prem to hub (yes or no)"
+                "description": "deploy vpngateways to connect via vpn on-prem to hub (yes or no)"
             }
         },
+        "autoApproval": {
+            "type": "string",
+            "defaultValue": "yes",
+            "metadata": {
+                "description": "use private link auto approval workflow (yes or no)"
+            }
+        },        
         "_artifactsLocation": {
             "type": "string",
             "metadata": {
@@ -76,16 +83,17 @@
             "subnetSpokeDefaultName": "snet-spoke-default"
         },
         "configuration": {
-            "uritemplatenamenetworking": "[concat(parameters('_artifactsLocation'),'/nested/networkinghubspoke.json')]",
-            "uritemplatenameprivatelink": "[concat(parameters('_artifactsLocation'),'/nested/storageprivatelink.json')]",
-            "uritemplatenameprivatednszone": "[concat(parameters('_artifactsLocation'),'/nested/privatednszone.json')]",
-            "uritemplatenamevm": "[concat(parameters('_artifactsLocation'),'/nested/virtualmachines.json')]",
-            "uritemplatenamegateways": "[concat(parameters('_artifactsLocation'),'/nested/vpngateways.json')]",
-            "uritemplatenamensg": "[concat(parameters('_artifactsLocation'),'/nested/nsg.json')]",
-            "uriinstallscripts": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftware.ps1')]"
+            "uriTemplateNameNetworking": "[concat(parameters('_artifactsLocation'),'/nested/networkinghubspoke.json')]",
+            "uriTemplateNamePrivatelink": "[concat(parameters('_artifactsLocation'),'/nested/storageprivatelink.json')]",
+            "uriTemplateNamePrivateDnsZone": "[concat(parameters('_artifactsLocation'),'/nested/privatednszone.json')]",
+            "uriTemplateNameVirtualMachines": "[concat(parameters('_artifactsLocation'),'/nested/virtualmachines.json')]",
+            "uriTemplateNameVpnGateways": "[concat(parameters('_artifactsLocation'),'/nested/vpngateways.json')]",
+            "uriTemplatenameNsg": "[concat(parameters('_artifactsLocation'),'/nested/nsg.json')]",
+            "uriInstallScripts": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftware.ps1')]"
         },
-        "vNetHubtovNetSpokePeeringName": "peering-to-spoke",
-        "vNetSpoketovNetHubPeeringName": "peering-to-hub",
+        "autoApproval" : "[parameters('autoApproval')]",
+        "peeringNameHubVnetToSpokeVnet": "peering-to-spoke",
+        "peeringNameSpokeVnetToHubVnet": "peering-to-hub",
         "storageAcctName": "[concat('stpvtlink', uniqueString(resourceGroup().id) )]",
         "privateEndpointName": "pvtlinkStorageEndPoint",
         "vmOnPremName": "[take(concat('vmonprem', uniqueString(resourceGroup().id)),15)]",
@@ -156,11 +164,11 @@
                     "subnetSpokeDefaultName": {
                         "value": "[variables('vnetSpoke').subnetSpokeDefaultName]"
                     },
-                    "vNetSpoketovNetHubPeeringName": {
-                        "value": "[variables('vNetSpoketovNetHubPeeringName')]"
+                    "peeringNameSpokeVnetToHubVnet": {
+                        "value": "[variables('peeringNameSpokeVnetToHubVnet')]"
                     },
-                    "vNetHubtovNetSpokePeeringName": {
-                        "value": "[variables('vNetHubtovNetSpokePeeringName')]"
+                    "peeringNameHubVnetToSpokeVnet": {
+                        "value": "[variables('peeringNameHubVnetToSpokeVnet')]"
                     }
                 }
 
@@ -193,7 +201,7 @@
                         "value": "[variables('vnetHub').subnetHubDefaultName]"
                     },
                     "autoApproval": {
-                        "value": "yes"
+                        "value": "[variables('autoApproval')]"
                     }
                 }
 
@@ -240,7 +248,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[variables('configuration').uritemplatenamevm]",
+                    "uri": "[variables('configuration').uriTemplateNameVirtualMachines]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -286,7 +294,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[variables('configuration').uritemplatenamevm]",
+                    "uri": "[variables('configuration').uriTemplateNameVirtualMachines]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -315,7 +323,7 @@
                         "value": "[parameters('diskType')]"
                     },
                     "scriptURL": {
-                        "value": "[variables('configuration').uriinstallscripts]"
+                        "value": "[variables('configuration').uriInstallScripts]"
                     }
 
                 }
@@ -332,7 +340,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[variables('configuration').uritemplatenamensg]",
+                    "uri": "[variables('configuration').uriTemplatenameNsg]",
                     "contentVersion": "1.0.0.0"
                 }
             }
@@ -341,7 +349,7 @@
         {
             "apiVersion": "2017-05-10",
             "name": "vpngateways",
-            "condition": "[equals(parameters('deploygw'),'yes')]",
+            "condition": "[equals(parameters('deployVpnGateways'),'yes')]",
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
                 "hubspokenetworking"
@@ -349,7 +357,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[variables('configuration').uritemplatenamegateways]",
+                    "uri": "[variables('configuration').uriTemplateNameVpnGateways]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {

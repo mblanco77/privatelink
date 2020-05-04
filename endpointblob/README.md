@@ -19,7 +19,9 @@ $vmUser : Username for the virtual machines
 
 $vmPass : password assigned to virtual machines
 
-$deploygw : (yes/no) parameter to if you want to deploy vpn gateways (15-20 minutes to deploy)
+$deployVpnGateways : (yes/no) parameter to if you want to deploy vpn gateways (15-20 minutes to deploy)
+
+$autoApprove : "private link auto Approval workflow (yes/no)"
 ```
 
 output
@@ -38,7 +40,12 @@ OutputsString           :
 
 ## How to test the scenario
 
-RDP into the spoke virtual machine (vmspokeurl)
+- If you selected  **"NO"** at the autoApprove parameter , you must first approve the private endpoint
+
+![approve workflow](images/approveworkflow.png)
+
+
+- RDP into the spoke virtual machine (vmspokeurl)
 
 1. first notice that the machine doesn’t have internet access, you can ping an external site, or try to navigate to some web page.
 
