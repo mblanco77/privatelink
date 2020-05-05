@@ -35,6 +35,13 @@
                 "description": "Password for the Virtual Machine."
             }
         },
+        "autoApproval": {
+            "type": "string",
+            "defaultValue": "yes",
+            "metadata": {
+                "description": "use private link auto approval workflow (yes or no)"
+            }
+        },        
         "_artifactsLocation": {
             "type": "string",
             "metadata": {
