@@ -183,7 +183,10 @@
                     },
                     "privateserviceName": {
                         "value": "[variables('privatelinkservicename')]"
-                    }
+                    },
+                    "autoApproval": {
+                        "value": "[parameters('autoApproval')]"
+                    },                    
                 }
 
             }
