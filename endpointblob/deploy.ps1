@@ -25,7 +25,7 @@ if ([string]::IsNullOrEmpty($autoApprove)){
 
 New-AzResourceGroup -Name $resourceGroupName -Location "$location"
 if ($vmPass.Length -gt 0){
-    New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName -vmUser $vmUser -VmPass $vmPass -deployVpnGateways $deployVpnGateways -autoApproval $autoApprove $ -TemplateFile "./azuredeploy.json" -TemplateParameterFile "./azuredeploy.parameters.json" -Verbose
+    New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName -vmUser $vmUser -VmPass $vmPass -deployVpnGateways $deployVpnGateways -autoApproval $autoApprove -TemplateFile "./azuredeploy.json" -TemplateParameterFile "./azuredeploy.parameters.json" -Verbose
 }
 else {
     New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName -vmUser $vmUser -deployVpnGateways $deployVpnGateways -autoApproval $autoApprove -TemplateFile "./azuredeploy.json" -TemplateParameterFile "./azuredeploy.parameters.json" -Verbose   

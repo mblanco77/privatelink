@@ -68,17 +68,56 @@
                 "description": "private link endpoint name"
             }
         },
-        "privateserviceName" : {
+        "privateserviceName": {
             "type": "string",
             "metadata": {
                 "description": "private service name"
             }
 
+        },
+        "autoApproval": {
+            "type": "string",
+            "metadata": {
+                "description": "auto approval"
+            },
+            "defaultValue": "yes"
         }
+
 
     },
     "variables": {
-                "pipname": "[concat('pip',parameters('vmName'))]"
+        "pipname": "[concat('pip',parameters('vmName'))]",
+        "privateEndpointName": "[parameters('privateEndpointName')]",
+        "privatendpointsubnet": {
+            "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetConsumerName'), parameters('subnetConsumerDefaultName'))]"
+            }
+        },
+        "privateEndpointManualConnection": {
+
+            "manualPrivateLinkServiceConnections": [
+                {
+                    "name": "[variables('privateEndpointName')]",
+                    "properties": {
+                        "privateLinkServiceId": "[resourceId('Microsoft.Network/privateLinkServices',parameters('privateserviceName'))]",
+                        "requestMessage": "please approve my request"
+                    }
+                }
+            ]
+        },
+        "privateEndpointConnection": {
+
+            "privateLinkServiceConnections": [
+                {
+                    "name": "[variables('privateEndpointName')]",
+                    "properties": {
+                        "privateLinkServiceId": "[resourceId('Microsoft.Network/privateLinkServices',parameters('privateserviceName'))]"
+                    }
+                }
+            ]
+        },
+        "privateEndpointConnectionProperties": "[if(equals(parameters('autoApproval'),'yes'),union(variables('privatendpointsubnet'),variables('privateEndpointConnection')),union(variables('privatendpointsubnet'),variables('privateEndpointManualConnection')))]"
+
     },
     "resources": [
         {
@@ -215,7 +254,7 @@
                 "evictionPolicy": "Deallocate",
                 "billingProfile": {
                     "maxPrice": -1
-                },                
+                },
                 "osProfile": {
                     "computerName": "[parameters('vmName')]",
                     "adminUsername": "[parameters('vmUser')]",
@@ -255,28 +294,16 @@
             ],
             "type": "Microsoft.Network/privateEndpoints",
             "apiVersion": "2019-04-01",
-            "properties": {
-                "subnet": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetConsumerName'), parameters('subnetConsumerDefaultName'))]"
-                },
-                "privateLinkServiceConnections": [
-                    {
-                        "name": "[parameters('privateEndpointName')]",
-                        "properties": {
-                           "privateLinkServiceId": "[resourceId('Microsoft.Network/privateLinkServices',parameters('privateserviceName'))]"
-                        }
-                    }
-                ]
-            },
+            "properties": "[variables('privateEndpointConnectionProperties')]",
             "tags": {
             }
         }
 
     ],
     "outputs": {
-       "vmdnsurl": {
+        "vmdnsurl": {
             "type": "string",
             "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('pipname'))).dnsSettings.fqdn]"
-        }        
+        }
     }
 }
