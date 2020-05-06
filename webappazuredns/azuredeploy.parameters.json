@@ -3,7 +3,7 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "_artifactsLocation" : {
-            "value": "https://mblanco.blob.core.windows.net/armartifacts/webappazuredns"
+            "value": "https://raw.githubusercontent.com/mblanco77/privatelink/master/webappazuredns"
         }        
     }
 

@@ -2,19 +2,19 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "azsqlservname": {
+        "azSqlServName": {
             "type": "string",
             "metadata": {
                 "description": "azure sql server name"
             }
         },
-        "admusername": {
+        "admUserName": {
             "type": "string",
             "metadata": {
                 "description": "azure sql server admin user"
             }
         },
-        "admpass": {
+        "admPass": {
             "type": "string",
             "metadata": {
                 "description": "azure sql server password"
@@ -22,20 +22,20 @@
         }
     },
     "variables": {
-        "dbname": "[concat(parameters('azsqlservname'),'/dbwebapp')]"
+        "dbname": "[concat(parameters('azSqlServName'),'/dbwebapp')]"
     },
     "resources": [
         {
-            "name": "[parameters('azsqlservname')]",
+            "name": "[parameters('azSqlServName')]",
             "type": "Microsoft.Sql/servers",
             "apiVersion": "2019-06-01-preview",
             "location": "[resourceGroup().location]",
             "tags": {
-                "displayName": "[parameters('azsqlservname')]"
+                "displayName": "[parameters('azSqlServName')]"
             },
             "kind": "v12.0",
             "properties": {
-                "administratorLogin": "[parameters('admusername')]",
+                "administratorLogin": "[parameters('admUserName')]",
                 "administratorLoginPassword": "[parameters('admpass')]",
                 "version": "12.0",
                 "publicNetworkAccess": "Disabled"
@@ -52,7 +52,7 @@
                 "displayName": "sqlDatabase1"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Sql/servers', parameters('azsqlservname'))]"
+                "[resourceId('Microsoft.Sql/servers', parameters('azSqlServName'))]"
             ],
             "sku": {
                 "name": "Basic",
@@ -70,7 +70,7 @@
     "outputs": {
         "sqlurl": {
             "type": "string",
-            "value": "[reference(resourceId('Microsoft.Sql/servers', parameters('azsqlservname'))).fullyQualifiedDomainName]"
+            "value": "[reference(resourceId('Microsoft.Sql/servers', parameters('azSqlServName'))).fullyQualifiedDomainName]"
         }
     }
 }

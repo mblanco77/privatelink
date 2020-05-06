@@ -6,16 +6,23 @@
             "type": "string",
             "defaultValue": "azureuser",
             "metadata": {
-                "description": "username for the Virtual Machine."
+                "description": "username for Azure SQL"
             }
         },
         "vmPass": {
             "type": "securestring",
             "defaultValue": "[concat('P1',uniquestring(resourceGroup().id))]",
             "metadata": {
-                "description": "Password for the Virtual Machine."
+                "description": "Password for the Azure SQL"
             }
         },
+        "autoApproval": {
+            "type": "string",
+            "defaultValue": "yes",
+            "metadata": {
+                "description": "use private link auto approval workflow (yes or no)"
+            }
+        },        
         "_artifactsLocation": {
             "type": "string",
             "metadata": {
@@ -34,22 +41,19 @@
             "subnetConsumerWebappName": "snet-consumer-webapp"
         },
         "configuration": {
-            "uritemplatenameazuresqlserver": "[concat(parameters('_artifactsLocation'),'/nested/azuresql.json')]",
-            "uritemplatenameconsumer": "[concat(parameters('_artifactsLocation'),'/nested/consumer.json')]",
-            "uritemplatenameprivatednszone": "[concat(parameters('_artifactsLocation'),'/nested/privatednszone.json')]",
-            "uritemplatenamewebapp": "[concat(parameters('_artifactsLocation'),'/nested/webapp.json')]",
-            "uritemplatenamensg": "[concat(parameters('_artifactsLocation'),'/nested/nsg.json')]"
+            "uriTemplateNameAzureSqlServer": "[concat(parameters('_artifactsLocation'),'/nested/azuresql.json')]",
+            "uriTemplateNameConsumer": "[concat(parameters('_artifactsLocation'),'/nested/consumer.json')]",
+            "uriTemplateNamePrivateDnsZone": "[concat(parameters('_artifactsLocation'),'/nested/privatednszone.json')]",
+            "uriTemplateNameWebapp": "[concat(parameters('_artifactsLocation'),'/nested/webapp.json')]"
         },
-        "privateEndpointnameConsumer": "pvtlinkEndPoint",
-        "azsqlservname": "[take(concat('sqlwebapp', uniqueString(resourceGroup().id)),15)]",
-        "vmConsumerName": "[take(concat('vmconsumer', uniqueString(resourceGroup().id)),15)]",
+        "privateEndpointNameConsumer": "pvtlinkEndPoint",
+        "azSqlServName": "[take(concat('sqlwebapp', uniqueString(resourceGroup().id)),15)]",
         "privateDnsZones_privatelink_database_windows_net_name": "privatelink.database.windows.net",
-        "nicVmConsumerName": "[concat(variables('vmConsumerName'),'-NetworkInterface')]",
-        "linkvnetname": "linkvnet",
+        "linkVnetName": "linkvnet",
         "privatezoneLinkVnetNames": [
             "[variables('vnetConsumer').vnetConsumerName]"
         ],
-        "sqlConnString": "[concat('Server=tcp:',variables('azsqlservname'), '.database.windows.net,1433;Initial Catalog=dbwebapp;Persist Security Info=False;User ID=', parameters('vmUser'), ';Password=', parameters('vmPass'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
+        "sqlConnString": "[concat('Server=tcp:',variables('azSqlServName'), '.database.windows.net,1433;Initial Catalog=dbwebapp;Persist Security Info=False;User ID=', parameters('vmUser'), ';Password=', parameters('vmPass'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
 
     },
     "resources": [
@@ -66,13 +70,13 @@
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
-                    "azsqlservname": {
-                        "value": "[variables('azsqlservname')]"
+                    "azSqlServName": {
+                        "value": "[variables('azSqlServName')]"
                     },
-                    "admusername": {
+                    "admUserName": {
                         "value": "[parameters('vmUser')]"
                     },
-                    "admpass": {
+                    "admPass": {
                         "value": "[parameters('vmPass')]"
                     }
                 }
@@ -89,7 +93,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[variables('configuration').uritemplatenameconsumer]",
+                    "uri": "[variables('configuration').uriTemplateNameConsumer]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -115,7 +119,7 @@
                         "value": "[variables('privateEndpointnameConsumer')]"
                     },
                     "sqlServerName": {
-                        "value": "[variables('azsqlservname')]"
+                        "value": "[variables('azSqlServName')]"
                     }
                 }
 
@@ -131,23 +135,20 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[variables('configuration').uritemplatenameprivatednszone]",
+                    "uri": "[variables('configuration').uriTemplateNamePrivateDnsZone]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
                     "privateDnsZones_privatelink_name": {
                         "value": "[variables('privateDnsZones_privatelink_database_windows_net_name')]"
                     },
-                    "azureSqlServerName": {
-                        "value": "[variables('azsqlservname')]"
+                    "privateEndpointName": {
+                        "value": "[variables('privateEndpointnameConsumer')]"
                     },
-                    "privatelinkendpointipaddress": {
-                        "value": "[reference('consumerenviroment').outputs.privatelinkprivateIPAddress.value]"
+                    "linkVnetName": {
+                        "value": "[variables('linkVnetName')]"
                     },
-                    "linkvnetname": {
-                        "value": "[variables('linkvnetname')]"
-                    },
-                    "vnetnames": {
+                    "vnetNames": {
                         "value": "[variables('privatezoneLinkVnetNames')]"
                     }
 
@@ -165,7 +166,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[variables('configuration').uritemplatenamewebapp]",
+                    "uri": "[variables('configuration').uriTemplateNameWebapp]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
