@@ -118,7 +118,7 @@
                 {
                     "name": "[variables('privateEndpointName')]",
                     "properties": {
-                        "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('sqlServerName'))]",
+                        "privateLinkServiceId": "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]",
                         "groupIds": [
                             "sqlServer"
                         ],
@@ -133,7 +133,7 @@
                 {
                     "name": "[variables('privateEndpointName')]",
                     "properties": {
-                        "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('sqlServerName'))]",
+                        "privateLinkServiceId": "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]",
                         "groupIds": [
                             "sqlServer"
                         ]
