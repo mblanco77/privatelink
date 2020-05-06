@@ -96,7 +96,7 @@
         "privateEndpointName": "[parameters('webAppPrivateEndpointName')]",
         "privatendpointsubnet": {
             "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetClientName'), parameters('subnetClientdefaultprefix'))]"
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetClientName'), parameters('subnetClientDefaultName'))]"
             }
         },
         "privateEndpointManualConnection": {
