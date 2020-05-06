@@ -4,7 +4,7 @@
     "parameters": {
         "virtualMachineSize": {
             "type": "string",
-            "defaultValue": "Standard_B2ms",
+            "defaultValue": "Standard_D2_v3",
             "metadata": {
                 "description": "The size of the VM"
             }
@@ -35,6 +35,13 @@
                 "description": "Password for the Virtual Machine."
             }
         },
+        "autoApproval": {
+            "type": "string",
+            "metadata": {
+                "description": "auto approval"
+            },
+            "defaultValue": "yes"
+        },
         "_artifactsLocation": {
             "type": "string",
             "metadata": {
@@ -64,21 +71,22 @@
         "configuration": {
             "uritemplatenameazuresqlserver": "[concat(parameters('_artifactsLocation'),'/nested/azuresql.json')]",
             "uritemplatenameService": "[concat(parameters('_artifactsLocation'),'/nested/serviceenviroment.json')]",
-            "uritemplatenameClient": "[concat(parameters('_artifactsLocation'),'/nested/client.json')]",            
+            "uritemplatenameClient": "[concat(parameters('_artifactsLocation'),'/nested/client.json')]",
             "uritemplatenameprivatednszone": "[concat(parameters('_artifactsLocation'),'/nested/privatednszone.json')]",
             "uritemplatenamewebapp": "[concat(parameters('_artifactsLocation'),'/nested/webapp.json')]",
             "uritemplatenamensg": "[concat(parameters('_artifactsLocation'),'/nested/nsg.json')]"
         },
+        "autoApproval": "[parameters('autoApproval')]",
         "SqlPrivateEndpointname": "pvtlinkSqlEndPoint",
         "webAppPrivateEndpointname": "pvtlinkWebAppEndPoint",
         "azsqlservname": "[take(concat('sqlwebapp', uniqueString(resourceGroup().id)),15)]",
-        "webappName" :  "[take(concat('webapppvl', uniqueString(resourceGroup().id)),15)]",
+        "webappName": "[take(concat('webapppvl', uniqueString(resourceGroup().id)),15)]",
         "vmDnsName": "[take(concat('vmDns', uniqueString(resourceGroup().id)),15)]",
         "vmClientName": "[take(concat('vmClient', uniqueString(resourceGroup().id)),15)]",
         "privateDnsZones_privatelink_database_windows_net_name": "privatelink.database.windows.net",
         "privateDnsZones_privatelink_azurewebsites_net_name": "privatelink.azurewebsites.net",
         "nicVmServiceName": "[concat(variables('vmDnsName'),'-NetworkInterface')]",
-        "nicVmClientName": "[concat(variables('vmClientName'),'-NetworkInterface')]",        
+        "nicVmClientName": "[concat(variables('vmClientName'),'-NetworkInterface')]",
         "linkvnetname": "linkvnet",
         "privatezoneSqlLinkVnetNames": [
             "[variables('vnetService').vnetServiceName]"
@@ -173,6 +181,9 @@
                     "sqlServerName": {
                         "value": "[variables('azsqlservname')]"
                     },
+                    "autoApproval": {
+                        "value": "[variables('autoApproval')]"
+                    },
                     "artifactsLocation": {
                         "value": "[parameters('_artifactsLocation')]"
                     }
@@ -197,11 +208,8 @@
                     "privateDnsZones_privatelink_name": {
                         "value": "[variables('privateDnsZones_privatelink_database_windows_net_name')]"
                     },
-                    "serviceName": {
-                        "value": "[variables('azsqlservname')]"
-                    },
-                    "privatelinkendpointipaddress": {
-                        "value": "[reference('serviceenviroment').outputs.privatelinkprivateIPAddress.value]"
+                    "privateEndpoint_name": {
+                        "value": "[variables('SqlPrivateEndpointname')]"
                     },
                     "linkvnetname": {
                         "value": "[variables('linkvnetname')]"
@@ -240,8 +248,8 @@
                     "subnetServiceWebappName": {
                         "value": "[variables('vnetService').subnetServiceWebappName]"
                     },
-                    "webAppName" : {
-                        "value" : "[variables('webappName')]"
+                    "webAppName": {
+                        "value": "[variables('webappName')]"
                     }
                 }
 
@@ -334,6 +342,9 @@
                     "webAppName": {
                         "value": "[variables('webappName')]"
                     },
+                    "autoApproval": {
+                        "value": "[variables('autoApproval')]"
+                    },
                     "artifactsLocation": {
                         "value": "[parameters('_artifactsLocation')]"
                     }
@@ -358,11 +369,8 @@
                     "privateDnsZones_privatelink_name": {
                         "value": "[variables('privateDnsZones_privatelink_azurewebsites_net_name')]"
                     },
-                    "serviceName": {
-                        "value": "[variables('webappName')]"
-                    },
-                    "privatelinkendpointipaddress": {
-                        "value": "[reference('clientenviroment').outputs.privatelinkprivateIPAddress.value]"
+                    "privateEndpoint_name": {
+                        "value": "[variables('webAppPrivateEndpointname')]"
                     },
                     "linkvnetname": {
                         "value": "[variables('linkvnetname')]"
@@ -389,9 +397,9 @@
             "type": "string",
             "value": "[reference('clientenviroment').outputs.vmclienturl.value]"
         },
-        "webappurl" : {
-            "type" : "string",
-            "value" : "[reference('webapp').outputs.websiteurl.value]"
+        "webappurl": {
+            "type": "string",
+            "value": "[reference('webapp').outputs.websiteurl.value]"
         }
 
     }

@@ -33,12 +33,12 @@
             "tags": {
                 "displayName": "[parameters('azsqlservname')]"
             },
-            "kind": "v12.0",            
+            "kind": "v12.0",
             "properties": {
                 "administratorLogin": "[parameters('admusername')]",
                 "administratorLoginPassword": "[parameters('admpass')]",
                 "version": "12.0",
-                "publicNetworkAccess": "Disabled"                
+                "publicNetworkAccess": "Disabled"
             },
             "resources": [
             ]

@@ -87,6 +87,13 @@
             }
 
         },
+        "autoApproval": {
+            "type": "string",
+            "metadata": {
+                "description": "auto approval"
+            },
+            "defaultValue": "yes"
+        },
         "artifactsLocation": {
             "type": "string",
             "metadata": {
@@ -98,7 +105,44 @@
     },
     "variables": {
         "pipname": "[concat('pip',parameters('DnsVmName'))]",
-        "scriptURL": "[concat(parameters('artifactsLocation'),'/scripts/installsoftware.ps1')]"
+        "scriptURL": "[concat(parameters('artifactsLocation'),'/scripts/installsoftware.ps1')]",
+        "privateEndpointName": "[parameters('SqlPrivateEndpointName')]",
+        "privatendpointsubnet": {
+            "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetServiceName'), parameters('subnetServiceDefaultName'))]"
+            }
+        },
+        "privateEndpointManualConnection": {
+
+            "manualPrivateLinkServiceConnections": [
+                {
+                    "name": "[variables('privateEndpointName')]",
+                    "properties": {
+                        "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('sqlServerName'))]",
+                        "groupIds": [
+                            "sqlServer"
+                        ],
+                        "requestMessage": "please approve my request"
+                    }
+                }
+            ]
+        },
+        "privateEndpointConnection": {
+
+            "privateLinkServiceConnections": [
+                {
+                    "name": "[variables('privateEndpointName')]",
+                    "properties": {
+                        "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('sqlServerName'))]",
+                        "groupIds": [
+                            "sqlServer"
+                        ]
+                    }
+                }
+            ]
+        },
+        "privateEndpointConnectionProperties": "[if(equals(parameters('autoApproval'),'yes'),union(variables('privatendpointsubnet'),variables('privateEndpointConnection')),union(variables('privatendpointsubnet'),variables('privateEndpointManualConnection')))]"
+
     },
     "resources": [
         {
@@ -235,6 +279,12 @@
                 "hardwareProfile": {
                     "vmSize": "[parameters('virtualMachineSize')]"
                 },
+                "licenseType": "Windows_Server",
+                "priority": "Spot",
+                "evictionPolicy": "Deallocate",
+                "billingProfile": {
+                    "maxPrice": -1
+                },
                 "osProfile": {
                     "computerName": "[parameters('DnsVmName')]",
                     "adminUsername": "[parameters('vmUser')]",
@@ -292,7 +342,6 @@
                 }
             }
         },
-
         {
             "location": "[resourceGroup().location]",
             "name": "[parameters('SqlPrivateEndpointName')]",
@@ -301,91 +350,12 @@
             ],
             "type": "Microsoft.Network/privateEndpoints",
             "apiVersion": "2019-04-01",
-            "properties": {
-                "subnet": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetServiceName'), parameters('subnetServiceDefaultName'))]"
-                },
-                "privateLinkServiceConnections": [
-                    {
-                        "name": "[parameters('SqlPrivateEndpointName')]",
-                        "properties": {
-                            "privateLinkServiceId": "[resourceId('Microsoft.Sql/servers',parameters('sqlServerName'))]",
-                            "groupIds": [
-                                "sqlServer"
-                            ]
-                        }
-                    }
-                ]
-            },
+            "properties": "[variables('privateEndpointConnectionProperties')]",
             "tags": {
             }
-        },
-        {
-            "apiVersion": "2017-05-10",
-            "name": "linkedTemplateGetPvtLinkNic",
-            "type": "Microsoft.Resources/deployments",
-            "properties": {
-                "mode": "Incremental",
-                "template": {
-                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                    "contentVersion": "1.0.0.0",
-                    "resources": [
-                    ],
-                    "outputs": {
-                        "privatelinknicid": {
-                            "type": "string",
-                            "value": "[reference(resourceId('Microsoft.Network/privateEndpoints', parameters('SqlPrivateEndpointName')),'2019-09-01').networkInterfaces[0].id]"
-                        }
-
-                    }
-                }
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', parameters('SqlPrivateEndpointName'))]"
-            ]
-        },
-        {
-            "apiVersion": "2017-05-10",
-            "name": "linkedTemplateGetIpAddressPvtlink",
-            "type": "Microsoft.Resources/deployments",
-            "properties": {
-                "expressionEvaluationOptions": {
-                    "scope": "inner"
-                },
-                "mode": "Incremental",
-                "template": {
-                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                    "contentVersion": "1.0.0.0",
-                    "parameters": {
-                        "nicId": {
-                            "type": "string"
-                        }
-                    },
-                    "resources": [
-                    ],
-                    "outputs": {
-                        "ipnic": {
-                            "type": "Object",
-                            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces',parameters('nicId')),'2019-04-01')]"
-                        }
-                    }
-                },
-                "parameters": {
-                    "nicId": {
-                        "value": "[last(split(string(reference('linkedTemplateGetPvtLinkNic').outputs.privatelinknicid.value),'/'))]"
-                    }
-                }
-            },
-            "dependsOn": [
-                "linkedTemplateGetPvtLinkNic"
-            ]
         }
     ],
     "outputs": {
-        "privatelinkprivateIPAddress": {
-            "type": "string",
-            "value": "[reference('linkedTemplateGetIpAddressPvtlink').outputs.ipnic.value.ipConfigurations[0].properties.privateIPAddress]"
-        },
         "vmdnsurl": {
             "type": "string",
             "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('pipname'))).dnsSettings.fqdn]"
