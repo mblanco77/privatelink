@@ -120,7 +120,11 @@
                     },
                     "sqlServerName": {
                         "value": "[variables('azSqlServName')]"
+                    },
+                    "autoApproval": {
+                        "value": "[parameters('autoApproval')]"
                     }
+
                 }
 
             }

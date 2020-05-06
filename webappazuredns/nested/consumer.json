@@ -50,9 +50,56 @@
                 "description": "Name of the Azure Sql Server"
             }
 
+        },
+        "autoApproval" :  {
+            "type": "string",
+            "metadata": {
+                "description": "auto approval"
+            },
+            "defaultValue" : "yes"    
         }
+
     },
     "variables": {
+        "privateEndpointName": "[parameters('privateEndpointName')]",
+        "privatendpointsubnet" : {
+               "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetConsumerName'), parameters('subnetConsumerDefaultName'))]"
+                }
+        },
+
+
+        "privateEndpointManualConnection" : {
+        
+                "manualPrivateLinkServiceConnections": [
+                    {
+                        "name": "[variables('privateEndpointName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Sql/servers',parameters('sqlServerName'))]",
+                            "groupIds": [
+                                "sqlServer"
+                            ],
+                            "requestMessage" : "please approve my request"
+                        }
+                    }
+                ]
+        },
+        "privateEndpointConnection" : {
+        
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[variables('privateEndpointName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Sql/servers',parameters('sqlServerName'))]",
+                            "groupIds": [
+                                "sqlServer"
+                            ]
+                        }
+                    }
+                ]
+        },
+        "privateEndpointConnectionProperties": "[if(equals(parameters('autoApproval'),'yes'),union(variables('privatendpointsubnet'),variables('privateEndpointConnection')),union(variables('privatendpointsubnet'),variables('privateEndpointManualConnection')))]"
+
     },
     "resources": [
         {
@@ -142,22 +189,7 @@
             ],
             "type": "Microsoft.Network/privateEndpoints",
             "apiVersion": "2019-04-01",
-            "properties": {
-                "subnet": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetConsumerName'), parameters('subnetConsumerDefaultName'))]"
-                },
-                "privateLinkServiceConnections": [
-                    {
-                        "name": "[parameters('privateEndpointName')]",
-                        "properties": {
-                            "privateLinkServiceId": "[resourceId('Microsoft.Sql/servers',parameters('sqlServerName'))]",
-                            "groupIds": [
-                                "sqlServer"
-                            ]
-                        }
-                    }
-                ]
-            },
+            "properties": "[variables('privateEndpointConnectionProperties')]",
             "tags": {
             }
         }
