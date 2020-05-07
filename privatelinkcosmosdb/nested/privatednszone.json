@@ -1,0 +1,93 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "privateDnsZones_privatelink_name": {
+            "type": "string",
+            "metadata": {
+                "description": "private dns zone name"
+            }
+        },
+        "privateEndpointName": {
+            "type": "string",
+            "metadata": {
+                "description": "privateendpoint name"
+            }
+        },
+        "linkVnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the link to vnet"
+            }
+        },
+        "vnetNames": {
+            "type": "array",
+            "metadata": {
+                "description": "names of the vnets to link"
+            }
+
+        }
+    },
+    "variables": {
+        "pvtendpointdnsgroupname": "[concat(parameters('privateEndpointName'),'/pvtendpointdnsgroupname')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2018-09-01",
+            "name": "[parameters('privateDnsZones_privatelink_name')]",
+            "location": "global",
+            "properties": {
+                "maxNumberOfRecordSets": 25000,
+                "maxNumberOfVirtualNetworkLinks": 1000,
+                "maxNumberOfVirtualNetworkLinksWithRegistration": 100,
+                "numberOfRecordSets": 2,
+                "numberOfVirtualNetworkLinks": 2,
+                "numberOfVirtualNetworkLinksWithRegistration": 0
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(parameters('privateDnsZones_privatelink_name'), '/' ,parameters('linkVnetName'), copyIndex())]",
+            "location": "global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDnsZones_privatelink_name'))]"
+            ],
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetNames')[copyIndex()])]"
+                }
+            },
+            "copy": {
+                "name": "copylinks",
+                "count": "[length(parameters('vnetNames'))]"
+            }
+        },
+        {
+            "apiVersion": "2020-03-01",
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "name": "[variables('pvtendpointdnsgroupname')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDnsZones_privatelink_name'))]"
+            ],
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "config1",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDnsZones_privatelink_name'))]"
+                        }
+                    }
+                ]
+            }
+        }
+
+
+    ],
+    "outputs": {
+    }
+
+}

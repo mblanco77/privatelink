@@ -1,0 +1,184 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "autoApproval": {
+            "type": "string",
+            "defaultValue": "yes",
+            "metadata": {
+                "description": "use private link auto approval workflow (yes or no)"
+            }
+        },        
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located."
+            },
+            "defaultValue": "https://raw.githubusercontent.com/mblanco77/privatelink/master/privatelinkcosmosdb"
+        }
+    },
+    "variables": {
+        "vnetConsumer": {
+            "vnetConsumerName": "vnet-consumer-001",
+            "vnetConsumerAddressSpace": "10.5.0.0/24",
+            "subnetConsumerDefaultPrefix": "10.5.0.0/25",
+            "subnetConsumerDefaultName": "snet-consumer-default",
+            "subnetConsumerWebappPrefix": "10.5.0.128/28",
+            "subnetConsumerWebappName": "snet-consumer-webapp"
+        },
+        "configuration": {
+            "uriTemplateNameCosmosDb": "[concat(parameters('_artifactsLocation'),'/nested/cosmosdb.json')]",
+            "uriTemplateNameConsumer": "[concat(parameters('_artifactsLocation'),'/nested/consumer.json')]",
+            "uriTemplateNamePrivateDnsZone": "[concat(parameters('_artifactsLocation'),'/nested/privatednszone.json')]",
+            "uriTemplateNameWebapp": "[concat(parameters('_artifactsLocation'),'/nested/webapp.json')]"
+        },
+        "privateEndpointNameConsumer": "pvtlinkEndPoint",
+        "cosmosDbName": "[take(concat('cosmos', uniqueString(resourceGroup().id)),15)]",
+        "privateDnsZones_privatelink_documents_azure_com": "privatelink.documents.azure.com",
+        "linkVnetName": "linkvnet",
+        "privatezoneLinkVnetNames": [
+            "[variables('vnetConsumer').vnetConsumerName]"
+        ],
+
+    },
+    "resources": [
+        {
+            "apiVersion": "2017-05-10",
+            "name": "cosmosdb",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uriTemplateNameCosmosDb]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "cosmosDbName": {
+                        "value": "[variables('cosmosDbName')]"
+                    }
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "consumerenviroment",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "cosmosdb"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uriTemplateNameConsumer]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "vnetConsumerName": {
+                        "value": "[variables('vnetConsumer').vnetConsumerName]"
+                    },
+                    "vnetConsumeraddressspace": {
+                        "value": "[variables('vnetConsumer').vnetConsumeraddressspace]"
+                    },
+                    "subnetConsumerdefaultprefix": {
+                        "value": "[variables('vnetConsumer').subnetConsumerdefaultprefix]"
+                    },
+                    "subnetConsumerDefaultName": {
+                        "value": "[variables('vnetConsumer').subnetConsumerDefaultName]"
+                    },
+                    "subnetConsumerWebappprefix": {
+                        "value": "[variables('vnetConsumer').subnetConsumerWebappprefix]"
+                    },
+                    "subnetConsumerWebappName": {
+                        "value": "[variables('vnetConsumer').subnetConsumerWebappName]"
+                    },
+                    "privateEndpointName": {
+                        "value": "[variables('privateEndpointnameConsumer')]"
+                    },
+                    "cosmosDbName": {
+                        "value": "[variables('cosmosDbName')]"
+                    },
+                    "autoApproval": {
+                        "value": "[parameters('autoApproval')]"
+                    }
+
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "privatednszone",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "consumerenviroment"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uriTemplateNamePrivateDnsZone]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "privateDnsZones_privatelink_name": {
+                        "value": "[variables('privateDnsZones_privatelink_documents_azure_com')]"
+                    },
+                    "privateEndpointName": {
+                        "value": "[variables('privateEndpointnameConsumer')]"
+                    },
+                    "linkVnetName": {
+                        "value": "[variables('linkVnetName')]"
+                    },
+                    "vnetNames": {
+                        "value": "[variables('privatezoneLinkVnetNames')]"
+                    }
+
+                }
+
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "webapp",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "consumerenviroment"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uriTemplateNameWebapp]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "artifactsLocation": {
+                        "value": "[parameters('_artifactsLocation')]"
+                    },                   
+                    "accountUrl": {
+                        "value": "[reference('cosmosdb').outputs.documentEndpoint.value]"
+                    },
+                    "accountKey": {
+                        "value": "[reference('cosmosdb').outputs.accountKey.value]"
+                    },
+                    "vnetConsumerName": {
+                        "value": "[variables('vnetConsumer').vnetConsumerName]"
+                    },
+                    "subnetConsumerWebappName": {
+                        "value": "[variables('vnetConsumer').subnetConsumerWebappName]"
+                    }
+
+                }
+
+            }
+        }
+    ],
+    "outputs": {
+        "webappurl" : {
+            "type" : "string",
+            "value" : "[reference('webapp').outputs.websiteurl.value]"
+        }        
+
+    }
+}

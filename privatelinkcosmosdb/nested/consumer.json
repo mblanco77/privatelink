@@ -1,0 +1,228 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vnetConsumerName": {
+            "type": "string",
+            "metadata": {
+                "description": "name of the consumer vnet"
+            }
+        },
+        "vnetConsumeraddressspace": {
+            "type": "string",
+            "metadata": {
+                "description": "Address Space of the consumer vnet"
+            }
+        },
+        "subnetConsumerdefaultprefix": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet prefix on the consumer vnet"
+            }
+        },
+        "subnetConsumerDefaultName": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet name on the consumer vnet"
+            }
+        },
+        "subnetConsumerWebappprefix": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet prefix on the consumer vnet"
+            }
+        },
+        "subnetConsumerWebappName": {
+            "type": "string",
+            "metadata": {
+                "description": "default subnet name on the consumer vnet"
+            }
+        },
+        "privateEndpointName": {
+            "type": "string",
+            "metadata": {
+                "description": "private link endpoint name"
+            }
+        },
+        "cosmosDbName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Cosmos DB"
+            }
+        },
+        "autoApproval" :  {
+            "type": "string",
+            "metadata": {
+                "description": "auto approval"
+            },
+            "defaultValue" : "yes"    
+        }
+
+    },
+    "variables": {
+        "privateEndpointName": "[parameters('privateEndpointName')]",
+        "privatendpointsubnet" : {
+               "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetConsumerName'), parameters('subnetConsumerDefaultName'))]"
+                }
+        },
+
+
+        "privateEndpointManualConnection" : {
+        
+                "manualPrivateLinkServiceConnections": [
+                    {
+                        "name": "[variables('privateEndpointName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.DocumentDb/databaseAccounts',parameters('cosmosDbName'))]",
+                            "groupIds": [
+                                "Sql"
+                            ],
+                            "requestMessage" : "please approve my request"
+                        }
+                    }
+                ]
+        },
+        "privateEndpointConnection" : {
+        
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[variables('privateEndpointName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.DocumentDb/databaseAccounts',parameters('cosmosDbName'))]",
+                            "groupIds": [
+                                "Sql"
+                            ]
+                        }
+                    }
+                ]
+        },
+        "privateEndpointConnectionProperties": "[if(equals(parameters('autoApproval'),'yes'),union(variables('privatendpointsubnet'),variables('privateEndpointConnection')),union(variables('privatendpointsubnet'),variables('privateEndpointManualConnection')))]"
+
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "nsgconsumer",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2019-09-01",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowRdpInbound",
+                        "properties": {
+                            "description": "Allow RDP Access",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('vnetConsumerName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "dependsOn": [
+                "nsgconsumer"
+            ],
+            "apiVersion": "2019-09-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[parameters('vnetConsumerName')]"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetConsumeraddressspace')]"
+                    ]
+                },
+                "dhcpOptions": {
+                    "dnsServers": [
+                        "168.63.129.16"
+                    ]
+                },                
+                "subnets": [
+                    {
+                        "name": "[parameters('subnetConsumerDefaultName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetConsumerdefaultprefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsgconsumer')]"
+                            },
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        }
+                    },
+                    {
+                        "name": "[parameters('subnetConsumerWebappName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetConsumerWebappPrefix')]",
+                            "delegations": [
+                                {
+                                    "name": "delegation",
+                                    "properties": {
+                                        "serviceName": "Microsoft.Web/serverfarms"
+                                    }
+                                }
+                            ],
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsgconsumer')]"
+                            }
+                        }
+                    }
+
+                ]
+            }
+        },
+        // {
+        //     "location": "[resourceGroup().location]",
+        //     "name": "[parameters('privateEndpointName')]",
+        //     "dependsOn": [
+        //         "[parameters('vnetConsumerName')]"
+        //     ],
+        //     "type": "Microsoft.Network/privateEndpoints",
+        //     "apiVersion": "2019-04-01",
+        //     "properties": {
+        //        "subnet": {
+        //             "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetConsumerName'), parameters('subnetConsumerDefaultName'))]"
+        //         },
+        //         "privateLinkServiceConnections": [
+        //             {
+        //                 "name": "[variables('privateEndpointName')]",
+        //                 "properties": {
+        //                     "privateLinkServiceId": "[resourceId('Microsoft.DocumentDb/databaseAccounts',parameters('cosmosDbName'))]",
+        //                     "groupIds": [
+        //                         "Sql"
+        //                     ]
+        //                 }
+        //             }
+        //         ]
+        //     },
+        //     "tags": {
+        //     }
+        // }
+
+
+
+        {
+            "location": "[resourceGroup().location]",
+            "name": "[parameters('privateEndpointName')]",
+            "dependsOn": [
+                "[parameters('vnetConsumerName')]"
+            ],
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2019-04-01",
+            "properties": "[variables('privateEndpointConnectionProperties')]",
+            "tags": {
+            }
+        }
+    ],
+    "outputs": {
+    }
+}

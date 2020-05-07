@@ -1,0 +1,57 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "cosmosDbName": {
+            "type": "string",
+            "metadata": {
+                "description": "cosmos db name"
+            }
+        }
+    },
+    "variables": {
+        "id" : "[concat(parameters('cosmosDbName'), '-', resourceGroup().location)]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.DocumentDb/databaseAccounts",
+            "apiVersion": "2019-12-12",
+            "name": "[parameters('cosmosDbName')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "defaultExperience": "Core (SQL)",
+                "hidden-cosmos-mmspecial": "",
+                "CosmosAccountType": "Non-Production"
+            },
+            "kind": "GlobalDocumentDB",
+            "properties": {
+                "databaseAccountOfferType": "Standard",
+                "locations": [
+                    {
+                        "id": "[variables('id')]",
+                        "failoverPriority": 0,
+                        "locationName": "[resourceGroup().location]"
+                    }
+                ],
+                "enableMultipleWriteLocations": false,
+                "isVirtualNetworkFilterEnabled": false,
+                "virtualNetworkRules": [],
+                "ipRangeFilter": "",
+                "dependsOn": [],
+                "capabilities": [],
+                "enableFreeTier": false
+            }
+        }
+
+    ],
+    "outputs": {
+        "documentEndpoint": {
+        "type": "string",
+        "value": "[reference(resourceId('Microsoft.DocumentDb/databaseAccounts',parameters('cosmosDbName'))).documentEndpoint]"
+        },
+        "accountKey": {
+        "type": "string",
+        "value": "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts',parameters('cosmosDbName')),'2019-12-12').primaryMasterKey]"
+        }        
+    }
+}
