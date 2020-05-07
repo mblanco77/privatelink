@@ -38,8 +38,7 @@
         "linkVnetName": "linkvnet",
         "privatezoneLinkVnetNames": [
             "[variables('vnetConsumer').vnetConsumerName]"
-        ],
-
+        ]
     },
     "resources": [
         {
