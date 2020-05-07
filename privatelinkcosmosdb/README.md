@@ -5,7 +5,7 @@ The Frontend of the webapp is public
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmblanco77%2Fprivatelink%2Fmaster%2Fprivatelinkcosmosdb%2Fazuredeploy.json)
 
-![windows web app with sql private endpoint](images/webappcosmospvtlink.png)
+![windows web app with cosmos db private endpoint](images/webappcosmospvtlink.png)
 
 this scenario is deployed using arm templates by executing deploy.ps1
 ### [deploy.ps1](deploy.ps1)

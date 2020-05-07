@@ -46,3 +46,13 @@ Consumed by a client in a private manner via app service private link.
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmblanco77%2Fprivatelink%2Fmaster%2Fprivatewebapp%2Fazuredeploy.json)
 
 ![private web app](privatewebapp/images/pvtfrontendwebapp.png)
+
+
+## [Windows web app with Cosmos DB private backend](privatelinkcosmosdb/README.md)
+
+This scenario shows a windows web app that communicates privately to Cosmos DB using a private link endpoint.
+The Frontend of the webapp is public
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmblanco77%2Fprivatelink%2Fmaster%2Fprivatelinkcosmosdb%2Fazuredeploy.json)
+
+![windows web app with cosmos db private endpoint](privatelinkcosmosdb/images/webappcosmospvtlink.png)
