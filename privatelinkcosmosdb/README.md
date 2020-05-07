@@ -63,7 +63,7 @@ To make completely private the communication between de web app and the Cosmos D
 Deny public network access
 Deny Access from Azure Services
 
-![sql firewall settings](images/sqlfwsettings.png)
+![sql firewall settings](images/cosmosfwsettings.png)
 
 # Notes:
 
