@@ -4,7 +4,7 @@
     "parameters": {
         "virtualMachineSize": {
             "type": "string",
-            "defaultValue": "Standard_B2ms",
+            "defaultValue": "Standard_D2_v3",
             "metadata": {
                 "description": "The size of the VM"
             }
@@ -89,7 +89,8 @@
             "uriTemplateNameVirtualMachines": "[concat(parameters('_artifactsLocation'),'/nested/virtualmachines.json')]",
             "uriTemplateNameVpnGateways": "[concat(parameters('_artifactsLocation'),'/nested/vpngateways.json')]",
             "uriTemplatenameNsg": "[concat(parameters('_artifactsLocation'),'/nested/nsg.json')]",
-            "uriInstallScripts": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftware.ps1')]"
+            "uriInstallScripts": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftware.ps1')]",
+            "uriInstallScriptsDNS": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftwaredns.ps1')]"            
         },
         "autoApproval" : "[parameters('autoApproval')]",
         "peeringNameHubVnetToSpokeVnet": "peering-to-spoke",
@@ -97,14 +98,17 @@
         "storageAcctName": "[concat('stpvtlink', uniqueString(resourceGroup().id) )]",
         "privateEndpointName": "pvtlinkStorageEndPoint",
         "vmOnPremName": "[take(concat('vmonprem', uniqueString(resourceGroup().id)),15)]",
+        "vmHubName": "[take(concat('vmdnshub', uniqueString(resourceGroup().id)),15)]",
+        "vmOnPremDNSName": "[take(concat('vmonpremdns', uniqueString(resourceGroup().id)),15)]",
         "vmSpokeName": "[take(concat('vmspoke', uniqueString(resourceGroup().id)),15)]",
         "nicVmOnPremName": "[concat(variables('vmOnPremName'),'-NetworkInterface')]",
+        "nicVmHubName": "[concat(variables('vmHubName'),'-NetworkInterface')]",        
+        "nicVmOnPremDNSName": "[concat(variables('vmOnPremDNSName'),'-NetworkInterface')]",
         "nicVmSpokeName": "[concat(variables('vmSpokeName'),'-NetworkInterface')]",
         "privateDnsZones_privatelink_blob_core_windows_net_name": "privatelink.blob.core.windows.net",
         "linkvnetname": "linkvnet",
         "privatezoneLinkVnetNames": [
-            "[variables('vnetSpoke').vnetSpokeName]",
-            "[variables('vnetOnPrem').vnetOnPremName]"
+            "[variables('vnetSpoke').vnetSpokeName]"
         ]
 
     },
@@ -278,6 +282,98 @@
                     },
                     "scriptURL": {
                         "value": "[variables('configuration').uriinstallscripts]"
+                    }
+
+
+                }
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "virtualmachineonpremdns",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "hubspokenetworking"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uriTemplateNameVirtualMachines]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "vmName": {
+                        "value": "[variables('vmOnPremDNSName')]"
+                    },
+                    "nicName": {
+                        "value": "[variables('nicVmOnPremDNSName')]"
+                    },
+                    "vnetName": {
+                        "value": "[variables('vnetOnPrem').vnetOnPremName]"
+                    },
+                    "subnet": {
+                        "value": "[variables('vnetOnPrem').subnetOnPremDefaultName]"
+                    },
+                    "virtualMachineSize": {
+                        "value": "[parameters('virtualMachineSize')]"
+                    },
+                    "vmUser": {
+                        "value": "[parameters('vmUser')]"
+                    },
+                    "vmpass": {
+                        "value": "[parameters('vmPass')]"
+                    },
+                    "diskType": {
+                        "value": "[parameters('diskType')]"
+                    },
+                    "scriptURL": {
+                        "value": "[variables('configuration').uriInstallScriptsDNS]"
+                    }
+
+
+                }
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "virtualmachinehubdns",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "hubspokenetworking"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('configuration').uriTemplateNameVirtualMachines]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "vmName": {
+                        "value": "[variables('vmHubName')]"
+                    },
+                    "nicName": {
+                        "value": "[variables('nicVmHubName')]"
+                    },
+                    "vnetName": {
+                        "value": "[variables('vnetHub').vnetHubName]"
+                    },
+                    "subnet": {
+                        "value": "[variables('vnetHub').subnetHubDefaultName]"
+                    },
+                    "virtualMachineSize": {
+                        "value": "[parameters('virtualMachineSize')]"
+                    },
+                    "vmUser": {
+                        "value": "[parameters('vmUser')]"
+                    },
+                    "vmpass": {
+                        "value": "[parameters('vmPass')]"
+                    },
+                    "diskType": {
+                        "value": "[parameters('diskType')]"
+                    },
+                    "scriptURL": {
+                        "value": "[variables('configuration').uriInstallScriptsDNS]"
                     }
 
 

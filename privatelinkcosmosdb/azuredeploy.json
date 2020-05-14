@@ -34,7 +34,8 @@
         },
         "privateEndpointNameConsumer": "pvtlinkEndPoint",
         "cosmosDbName": "[take(concat('cosmos', uniqueString(resourceGroup().id)),15)]",
-        "privateDnsZones_privatelink_documents_azure_com": "privatelink.documents.azure.com",
+//        "privateDnsZones_privatelink_documents_azure_com": "privatelink.documents.azure.com",
+        "privateDnsZones_privatelink_documents_azure_com": "privatelink.database.windows.net",
         "linkVnetName": "linkvnet",
         "privatezoneLinkVnetNames": [
             "[variables('vnetConsumer').vnetConsumerName]"
