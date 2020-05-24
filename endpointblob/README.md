@@ -45,7 +45,7 @@ OutputsString           :
 ![approve workflow](images/approveworkflow.png)
 
 
-- RDP into the spoke virtual machine (vmspokeurl)
+- RDP into the spoke or on-premises virtual machine (vmspokeurl/vmonpremurl)
 
 1. first notice that the machine doesn’t have internet access, you can ping an external site, or try to navigate to some web page.
 

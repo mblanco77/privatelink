@@ -48,31 +48,34 @@
             "metadata": {
                 "description": "use private link auto approval workflow (yes or no)"
             }
-        },        
+        },
         "_artifactsLocation": {
             "type": "string",
             "metadata": {
                 "description": "The base URI where artifacts required by this template are located."
             },
-            "defaultValue": "https://raw.githubusercontent.com/mblanco77/privatelink/master/endpointblob"       
+            "defaultValue": "https://raw.githubusercontent.com/mblanco77/privatelink/master/endpointblob"
         }
     },
     "variables": {
         "vnetOnPrem": {
             "vnetOnPremName": "vnet-onprem-001",
-            "vnetOnPremAddressSpace": "192.168.0.0/24",
-            "subnetOnPremDefaultPrefix": "192.168.0.0/25",
-            "subnetOnPremGatewayPrefix": "192.168.0.128/28",
+            "vnetOnPremAddressSpace": "10.0.0.0/24",
+            "subnetOnPremDefaultPrefix": "10.0.0.0/25",
+            "subnetOnPremGatewayPrefix": "10.0.0.128/28",
+            "subnetOnPremDnsPrefix": "10.0.0.240/28",
             "gatewayPIPOnPremName": "pipgwonprem",
             "subnetOnPremDefaultName": "snet-onprem-default",
-            "gatewayName": "gwonprem"
-        },
+            "subnetOnPremDnsName": "snet-onprem-dns",
+            "gatewayName": "gwonprem"        },
         "vnetHub": {
             "vnetHubName": "vnet-hub-001",
-            "vnetHubAddressSpace": "10.0.0.0/24",
-            "subnetHubDefaultPrefix": "10.0.0.0/25",
+            "vnetHubAddressSpace": "10.5.0.0/24",
+            "subnetHubDefaultPrefix": "10.5.0.0/25",
             "subnetHubDefaultName": "snet-hub-default",
-            "subnetHubGatewayPrefix": "10.0.0.128/28",
+            "subnetHubGatewayPrefix": "10.5.0.128/28",
+            "subnetHubDnsPrefix": "10.5.0.240/28",
+            "subnetHubDnsName": "snet-hub-dns",
             "gatewayPIPHubName": "pipgwhub",
             "gatewayName": "gwhub"
         },
@@ -90,9 +93,14 @@
             "uriTemplateNameVpnGateways": "[concat(parameters('_artifactsLocation'),'/nested/vpngateways.json')]",
             "uriTemplatenameNsg": "[concat(parameters('_artifactsLocation'),'/nested/nsg.json')]",
             "uriInstallScripts": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftware.ps1')]",
-            "uriInstallScriptsDNS": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftwaredns.ps1')]"            
+            "uriInstallScriptsDNS": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftwaredns.ps1')]",
+            "uriInstallScriptsDNSHub": "[concat(parameters('_artifactsLocation'),'/scripts/installsoftwarednshub.ps1')]",
+            "scriptexednshub": "./installsoftwarednshub.ps1",
+            "scriptexednsonprem": "./installsoftwaredns.ps1 blob.core.windows.net 10.5.0.254",
+            "scriptexeonprem": "./installsoftware.ps1",
+            "scriptexespoke": "./installsoftware.ps1"
         },
-        "autoApproval" : "[parameters('autoApproval')]",
+        "autoApproval": "[parameters('autoApproval')]",
         "peeringNameHubVnetToSpokeVnet": "peering-to-spoke",
         "peeringNameSpokeVnetToHubVnet": "peering-to-hub",
         "storageAcctName": "[concat('stpvtlink', uniqueString(resourceGroup().id) )]",
@@ -102,13 +110,14 @@
         "vmOnPremDNSName": "[take(concat('vmonpremdns', uniqueString(resourceGroup().id)),15)]",
         "vmSpokeName": "[take(concat('vmspoke', uniqueString(resourceGroup().id)),15)]",
         "nicVmOnPremName": "[concat(variables('vmOnPremName'),'-NetworkInterface')]",
-        "nicVmHubName": "[concat(variables('vmHubName'),'-NetworkInterface')]",        
+        "nicVmHubName": "[concat(variables('vmHubName'),'-NetworkInterface')]",
         "nicVmOnPremDNSName": "[concat(variables('vmOnPremDNSName'),'-NetworkInterface')]",
         "nicVmSpokeName": "[concat(variables('vmSpokeName'),'-NetworkInterface')]",
         "privateDnsZones_privatelink_blob_core_windows_net_name": "privatelink.blob.core.windows.net",
         "linkvnetname": "linkvnet",
         "privatezoneLinkVnetNames": [
-            "[variables('vnetSpoke').vnetSpokeName]"
+            "[variables('vnetSpoke').vnetSpokeName]",
+            "[variables('vnetHub').vnetHubName]"
         ]
 
     },
@@ -141,6 +150,12 @@
                     "subnetOnPremGatewayPrefix": {
                         "value": "[variables('vnetOnPrem').subnetOnPremGatewayPrefix]"
                     },
+                    "subnetOnPremDnsName": {
+                        "value": "[variables('vnetOnPrem').subnetOnPremDnsName]"
+                    },
+                    "subnetOnPremDnsPrefix": {
+                        "value": "[variables('vnetOnPrem').subnetOnPremDnsPrefix]"
+                    },
                     "vnetHubName": {
                         "value": "[variables('vnetHub').vnetHubName]"
                     },
@@ -155,6 +170,12 @@
                     },
                     "subnetHubGatewayPrefix": {
                         "value": "[variables('vnetHub').subnetHubGatewayPrefix]"
+                    },
+                    "subnetHubDnsName": {
+                        "value": "[variables('vnetHub').subnetHubDnsName]"
+                    },
+                    "subnetHubDnsPrefix": {
+                        "value": "[variables('vnetHub').subnetHubDnsPrefix]"
                     },
                     "vnetSpokeName": {
                         "value": "[variables('vnetSpoke').vnetSpokeName]"
@@ -228,8 +249,8 @@
                     "privateDnsZones_privatelink_blob_core_windows_net_name": {
                         "value": "[variables('privateDnsZones_privatelink_blob_core_windows_net_name')]"
                     },
-                    "privateEndpoint_name" : {
-                          "value": "[variables('privateEndpointName')]"
+                    "privateEndpoint_name": {
+                        "value": "[variables('privateEndpointName')]"
                     },
                     "linkvnetname": {
                         "value": "[variables('linkvnetname')]"
@@ -262,6 +283,9 @@
                     "nicName": {
                         "value": "[variables('nicVmOnPremName')]"
                     },
+                    "privateIPAllocationMethod": {
+                        "value": "Dynamic"
+                    },
                     "vnetName": {
                         "value": "[variables('vnetOnPrem').vnetOnPremName]"
                     },
@@ -282,7 +306,11 @@
                     },
                     "scriptURL": {
                         "value": "[variables('configuration').uriinstallscripts]"
+                    },
+                    "scriptExecute": {
+                        "value": "[variables('configuration').scriptexeonprem]"
                     }
+
 
 
                 }
@@ -308,11 +336,20 @@
                     "nicName": {
                         "value": "[variables('nicVmOnPremDNSName')]"
                     },
+                    "privateIPAllocationMethod": {
+                        "value": "Static"
+                    },
+                    "privateIPAddress": {
+                        "value": "10.0.0.254"
+                    },
+                    "nicDns": {
+                        "value": "Yes"
+                    },
                     "vnetName": {
                         "value": "[variables('vnetOnPrem').vnetOnPremName]"
                     },
                     "subnet": {
-                        "value": "[variables('vnetOnPrem').subnetOnPremDefaultName]"
+                        "value": "[variables('vnetOnPrem').subnetOnPremDnsName]"
                     },
                     "virtualMachineSize": {
                         "value": "[parameters('virtualMachineSize')]"
@@ -328,8 +365,10 @@
                     },
                     "scriptURL": {
                         "value": "[variables('configuration').uriInstallScriptsDNS]"
-                    }
-
+                    },
+                    "scriptExecute": {
+                        "value": "[variables('configuration').scriptexednsonprem]"
+                    }                    
 
                 }
             }
@@ -354,11 +393,17 @@
                     "nicName": {
                         "value": "[variables('nicVmHubName')]"
                     },
+                    "privateIPAllocationMethod": {
+                        "value": "Static"
+                    },
+                    "privateIPAddress": {
+                        "value": "10.5.0.254"
+                    },
                     "vnetName": {
                         "value": "[variables('vnetHub').vnetHubName]"
                     },
                     "subnet": {
-                        "value": "[variables('vnetHub').subnetHubDefaultName]"
+                        "value": "[variables('vnetHub').subnetHubDnsName]"
                     },
                     "virtualMachineSize": {
                         "value": "[parameters('virtualMachineSize')]"
@@ -373,9 +418,11 @@
                         "value": "[parameters('diskType')]"
                     },
                     "scriptURL": {
-                        "value": "[variables('configuration').uriInstallScriptsDNS]"
-                    }
-
+                        "value": "[variables('configuration').uriInstallScriptsDNSHub]"
+                    },
+                    "scriptExecute": {
+                        "value": "[variables('configuration').scriptexednshub]"
+                    }                    
 
                 }
             }
@@ -411,7 +458,7 @@
                     },
                     "vmUser": {
                         "value": "[parameters('vmUser')]"
-                    },                    
+                    },
                     "vmpass": {
                         "value": "[parameters('vmPass')]"
                     },
@@ -420,7 +467,11 @@
                     },
                     "scriptURL": {
                         "value": "[variables('configuration').uriInstallScripts]"
-                    }
+                    },
+                    "scriptExecute": {
+                        "value": "[variables('configuration').scriptexespoke]"
+                    }                    
+
 
                 }
             }

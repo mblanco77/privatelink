@@ -32,6 +32,18 @@
                 "description": "gateway subnet prefix on the onprem vnet"
             }
         },
+        "subnetOnPremDnsName": {
+            "type": "string",
+            "metadata": {
+                "description": "dns subnet name"
+            }
+        },
+        "subnetOnPremDnsPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "dns subnet prefix on the onprem vnet"
+            }
+        },
         "vnetHubName": {
             "type": "string",
             "metadata": {
@@ -56,11 +68,22 @@
                 "description": "default subnet name on the hub vnet"
             }
         },
-
         "subnetHubGatewayPrefix": {
             "type": "string",
             "metadata": {
                 "description": "gateway subnet prefix on the hub vnet"
+            }
+        },
+        "subnetHubDnsName": {
+            "type": "string",
+            "metadata": {
+                "description": "dns subnet name"
+            }
+        },
+        "subnetHubDnsPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "dns subnet prefix on the hub vnet"
             }
         },
         "peeringNameHubVnetToSpokeVnet": {
@@ -144,6 +167,11 @@
                         "[parameters('vnetOnPremAddressSpace')]"
                     ]
                 },
+                "dhcpOptions": {
+                    "dnsServers": [
+                        "10.0.0.254"
+                    ]
+                },
                 "subnets": [
                     {
                         "name": "[parameters('subnetOnPremDefaultName')]",
@@ -159,7 +187,14 @@
                         "properties": {
                             "addressPrefix": "[parameters('subnetOnPremGatewayPrefix')]"
                         }
+                    },
+                    {
+                        "name": "[parameters('subnetOnPremDnsName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetOnPremDnsPrefix')]"
+                        }
                     }
+
 
                 ]
             }
@@ -199,7 +234,14 @@
                         "properties": {
                             "addressPrefix": "[parameters('subnetHubGatewayPrefix')]"
                         }
+                    },
+                    {
+                        "name": "[parameters('subnetHubDnsName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetHubDnsPrefix')]"
+                        }
                     }
+
 
                 ]
             },
