@@ -77,7 +77,8 @@
                     },
                     "properties": {
                         "App:SqlDatabase:ConnectionString": "[parameters('sqlConnString')]",
-                        "WEBSITE_VNET_ROUTE_ALL" : "1"
+                        "WEBSITE_VNET_ROUTE_ALL" : "1",
+                        "WEBSITE_DNS_SERVER" : "168.63.129.16"
                     }
                 },
                 {
